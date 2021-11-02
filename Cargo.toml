@@ -3,6 +3,7 @@ name = "Rust-Light-Vulkan-Engine"
 version = "0.1.0"
 authors = ["Mot <37093297+TomSimpsonNZ@users.noreply.github.com>"]
 edition = "2018"
+build = "build.rs" # Builds the glsl shader modules at compilation time
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

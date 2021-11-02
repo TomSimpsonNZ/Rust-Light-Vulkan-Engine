@@ -45,3 +45,6 @@ for translating Alex's tutorial, a bunch of this code was yoinked from [that rep
 # 1: Opening a Window ([link](https://www.youtube.com/watch?v=lr93-_cC8v4&ab_channel=BrendanGalea))
 - Later versions of [winit](https://docs.rs/winit/0.25.0/winit/) (0.20+) use an architecture that is very different to glfw. Because of this the structure presented in the tutorial will not work, or will be very weird to implement. As such, there is no lve_window struct and ownership of the window has been moved to the application (first_app).
 
+# 2: Graphics Pipeline Overview ([link](https://www.youtube.com/watch?v=_riranMmtvI&ab_channel=BrendanGalea))
+- A `build.rs` file was added to compile the shader files when the program is built. This is just a replacement 
+for the shell script presented in the video.
