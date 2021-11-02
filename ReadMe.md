@@ -48,3 +48,17 @@ for translating Alex's tutorial, a bunch of this code was yoinked from [that rep
 # 2: Graphics Pipeline Overview ([link](https://www.youtube.com/watch?v=_riranMmtvI&ab_channel=BrendanGalea))
 - A `build.rs` file was added to compile the shader files when the program is built. This is just a replacement 
 for the shell script presented in the video.
+- "We're about half way to seeing our first triangle on screen"... I've never heard a more blatant lie.
+
+# 3: Device Setup & Pipeline cont. ([link](https://www.youtube.com/watch?v=LYKlEIzGmW4&t=3s&ab_channel=BrendanGalea))
+- Due to the nature of Rust, a lot of the functions that were `void` in the tutorial now return things. This is so we can properly initialise the `LveDevice` struct by allowing the functions to borrow these Vulkan structs.
+- `device_extensions` does is not a global constant anymore as ash requires the extension names to be given by a functions, and hence can't be stored in a constant. It can now be found in the `LveDevice::get_device_extensions()` function.
+- Due to the lack of lve_window module, it was more convenient to use the `create_surface()` function from the [ash-window](https://docs.rs/ash-window/0.7.0/ash_window/) crate in the `LveDevice::create_surface()` function.
+The naming here is a little confusing, sorry about that.
+- You will also note that ash has two surface types, `Surface` and `vk::SurfaceKHR`. The former is a struct containing the functions that act on the surface, while the latter is the Vulkan surface itself.
+- The biggest deviation in this code is the fact that the `lve_device` now owns the `pipeline` instead of the application owning both. In the tutorial, Brendan says that having a reference to the device in the pipeline 
+can be unsafe as the device needs to be destroyed after the pipeline. In Rust, if it can be unsafe it won't compile, so some restructuring had to be done. 
+
+![new structure](./images/new_structure.png)
+
+- Overall, the way that extensions are handled in this implementation are slightly different so don't expect the exact same console output as the one shown in the video.
