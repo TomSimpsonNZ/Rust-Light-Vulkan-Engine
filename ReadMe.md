@@ -62,3 +62,7 @@ can be unsafe as the device needs to be destroyed after the pipeline. In Rust, i
 ![new structure](./images/new_structure.png)
 
 - Overall, the way that extensions are handled in this implementation are slightly different so don't expect the exact same console output as the one shown in the video.
+
+# 4: Fixed Function Pipeline Stages ([link](https://www.youtube.com/watch?v=ecMcXW6MSYU&ab_channel=BrendanGalea))
+- Some pipeline builder functions were commented out as they were optional and required null pointers, something I'm not sure is implemented in rust.
+- Pipeline destructor function was already implemented in the previous commit
