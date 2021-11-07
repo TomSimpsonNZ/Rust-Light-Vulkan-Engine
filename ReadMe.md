@@ -56,7 +56,7 @@ for the shell script presented in the video.
 - Due to the lack of lve_window module, it was more convenient to use the `create_surface()` function from the [ash-window](https://docs.rs/ash-window/0.7.0/ash_window/) crate in the `LveDevice::create_surface()` function.
 The naming here is a little confusing, sorry about that.
 - You will also note that ash has two surface types, `Surface` and `vk::SurfaceKHR`. The former is a struct containing the functions that act on the surface, while the latter is the Vulkan surface itself.
-- The biggest deviation in this code is the fact that the `lve_device` now owns the `pipeline` instead of the application owning both. In the tutorial, Brendan says that having a reference to the device in the pipeline 
+- The biggest deviation in this code is the fact that the `LveDevice` now owns the `LvePipeline` instead of the application owning both. In the tutorial, Brendan says that having a reference to the device in the pipeline 
 can be unsafe as the device needs to be destroyed after the pipeline. In Rust, if it can be unsafe it won't compile, so some restructuring had to be done. 
 
 ![new structure](./images/new_structure.png)
@@ -65,4 +65,14 @@ can be unsafe as the device needs to be destroyed after the pipeline. In Rust, i
 
 # 4: Fixed Function Pipeline Stages ([link](https://www.youtube.com/watch?v=ecMcXW6MSYU&ab_channel=BrendanGalea))
 - Some pipeline builder functions were commented out as they were optional and required null pointers, something I'm not sure is implemented in rust.
-- Pipeline destructor function was already implemented in the previous commit
+- Pipeline destructor function was already implemented in the previous commit.
+
+# 5.1: Swap Chain Overview ([link](https://www.youtube.com/watch?v=IUYH74MqxOA&t=238s&ab_channel=BrendanGalea))
+- Architecture change made in tutorial 3 commit was once again changed, as an approach more similar to that given by the tutorial was found. The `lve_device`, `lve_swapchain`, and `lve_pipeline` are all now owned by the application.
+The conflicting issue in tutorial 3 was the destruction of the Vulkan objects, which most of the time require a reference to the device. By making the application handle the destruction of everything when the struct is dropped, we can pass the device to the other modules without having any cyclical linking trees.
+    - Each struct now has a ` pub unsafe fn destroy()` function that handles the destruction of its fields.
+- public get functions are discouraged in Rust, so instead those variables were passed to functions when they were needed and will individually be made public when they are needed in other modules.
+- No vectors need to be resized in rust, so all those lines were skipped.
+- All functions that were `void` in the tutorial now return their respective structs similarly to tutorial 3.
+- Some reformatting was done (witch should have been done during the other commits). This was done using rusts inbuilt formatter, so should not be too hard to replicate
+- My machine is currently giving validation errors at the end of this tutorial. For now I will leave this issue to see if fully implementing everything in the next tutorial fixes the issue, if not then there will be another commit with a fix (hopefully)
