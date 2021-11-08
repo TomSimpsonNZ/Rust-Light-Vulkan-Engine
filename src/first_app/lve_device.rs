@@ -57,7 +57,6 @@ unsafe extern "system" fn vulkan_debug_callback(
 /// formats: Vec<vk::SurfaceFormatKHR>
 /// present_mode: Vec<vk::PresentModeKHR>
 /// ```
-///
 pub struct SwapChainSupportDetails {
     pub capabilities: vk::SurfaceCapabilitiesKHR,
     pub formats: Vec<vk::SurfaceFormatKHR>,
@@ -74,7 +73,6 @@ pub struct SwapChainSupportDetails {
 /// graphics_family_has_value: bool
 /// present_family_has_value: bool
 /// ```
-///
 pub struct QueueFamilyIndices {
     pub graphics_family: u32,
     pub present_family: u32,
@@ -97,9 +95,9 @@ pub struct LveDevice {
     physical_device: vk::PhysicalDevice,
     properties: vk::PhysicalDeviceProperties,
     pub device: Device,
-    command_pool: vk::CommandPool,
-    graphics_queue: vk::Queue,
-    present_queue: vk::Queue,
+    pub command_pool: vk::CommandPool,
+    pub graphics_queue: vk::Queue,
+    pub present_queue: vk::Queue,
 }
 
 impl LveDevice {

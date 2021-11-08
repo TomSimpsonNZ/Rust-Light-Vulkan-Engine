@@ -12,7 +12,7 @@ fn main() {
     env_logger::init();
 
     // Create the application and events loop
-    let (vulkan_app, event_loop) = VulkanApp::new();
+    let (mut vulkan_app, event_loop) = VulkanApp::new();
 
     log::debug!("Running Application");
 
@@ -23,7 +23,7 @@ fn main() {
 
         // Create a reference to the vulkan app here so that it is dropped 
         // properly and can be used in the loop
-        let _app = &vulkan_app;
+        let app = &mut vulkan_app;
 
         match event {
             Event::WindowEvent {
@@ -32,6 +32,9 @@ fn main() {
             } => {
                 log::debug!("Closing window");
                 *control_flow = ControlFlow::Exit
+            },
+            Event::MainEventsCleared => {
+                app.draw_frame();
             },
             _ => ()
         }

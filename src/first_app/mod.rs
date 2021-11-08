@@ -12,8 +12,8 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
+use ash::version::DeviceV1_0;
 use ash::{vk, Device};
-use ash::version::{DeviceV1_0};
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
@@ -25,7 +25,7 @@ pub struct VulkanApp {
     lve_swapchain: LveSwapchain,
     lve_pipeline: LvePipeline,
     pipeline_layout: vk::PipelineLayout, // I think this should be a part of the pipeline module
-                                         // command_buffers: Vec<vk::CommandBuffer>,
+    command_buffers: Vec<vk::CommandBuffer>,
 }
 
 impl VulkanApp {
@@ -40,9 +40,14 @@ impl VulkanApp {
 
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
         let lve_pipeline =
-            Self::create_pipeline(&lve_device.device, &lve_swapchain, pipeline_layout);
+            Self::create_pipeline(&lve_device.device, &lve_swapchain, &pipeline_layout);
 
-        // let command_buffers = Self::create_command_buffers();
+        let command_buffers = Self::create_command_buffers(
+            &lve_device.device,
+            lve_device.command_pool,
+            &lve_swapchain,
+            &lve_pipeline,
+        );
 
         (
             Self {
@@ -51,12 +56,49 @@ impl VulkanApp {
                 lve_swapchain,
                 lve_pipeline,
                 pipeline_layout,
+                command_buffers,
             },
             event_loop,
         )
     }
 
-    pub fn draw_frame() {}
+    pub fn draw_frame(&mut self) {
+        let (image_index, result) = unsafe {
+            self.lve_swapchain
+                .acquire_next_image(&self.lve_device.device)
+                .map_err(|e| log::error!("Unable to acquire next image: {}", e))
+                .unwrap()
+        };
+
+        match result {
+            true => {
+                log::error!("Swapchain is suboptimal for surface");
+                panic!("Will handle this better later");
+            }
+
+            false => {}
+        }
+
+        let _result = self
+            .lve_swapchain
+            .submit_command_buffers(
+                &self.lve_device.device,
+                &self.lve_device.graphics_queue,
+                &self.lve_device.present_queue,
+                &self.command_buffers[image_index as usize],
+                image_index as usize,
+            )
+            .map_err(|e| log::error!("Unable to present swapchain image: {}", e))
+            .unwrap();
+
+        unsafe {
+            self.lve_device
+                .device
+                .device_wait_idle()
+                .map_err(|e| log::error!("Cannot wait: {}", e))
+                .unwrap()
+        };
+    }
 
     fn get_window_extent(window: &Window) -> vk::Extent2D {
         let window_inner_size = window.inner_size();
@@ -84,19 +126,18 @@ impl VulkanApp {
     fn create_pipeline(
         device: &Device,
         lve_swapchain: &LveSwapchain,
-        pipeline_layout: vk::PipelineLayout,
+        pipeline_layout: &vk::PipelineLayout,
     ) -> LvePipeline {
-        let mut pipeline_config =
+        let pipeline_config =
             LvePipeline::default_pipline_config_info(lve_swapchain.width(), lve_swapchain.height());
-
-        pipeline_config.render_pass = lve_swapchain.render_pass; // I don't like this
-        pipeline_config.pipeline_layout = pipeline_layout;
 
         LvePipeline::new(
             device,
             "shaders/simple_shader.vert.spv",
             "shaders/simple_shader.frag.spv",
-            &pipeline_config,
+            pipeline_config,
+                &lve_swapchain.render_pass,
+                pipeline_layout,
         )
     }
 
@@ -114,7 +155,87 @@ impl VulkanApp {
         }
     }
 
-    // fn create_command_buffers() -> Vec<vk::CommandBuffer> {}
+    fn create_command_buffers(
+        device: &Device,
+        command_pool: vk::CommandPool,
+        lve_swapchain: &LveSwapchain,
+        lve_pipeline: &LvePipeline,
+    ) -> Vec<vk::CommandBuffer> {
+        let alloc_info = vk::CommandBufferAllocateInfo::builder()
+            .level(vk::CommandBufferLevel::PRIMARY)
+            .command_pool(command_pool)
+            .command_buffer_count(lve_swapchain.image_count() as u32)
+            .build();
+
+        let command_buffers = unsafe {
+            device
+                .allocate_command_buffers(&alloc_info)
+                .map_err(|e| log::error!("Unable to allocate command buffer: {}", e))
+                .unwrap()
+        };
+
+        command_buffers
+            .iter()
+            .zip(lve_swapchain.swapchain_framebuffers.iter())
+            .for_each(|(command_buffer, frame_buffer)| {
+                let begin_info = vk::CommandBufferBeginInfo::builder().build();
+
+                unsafe {
+                    device
+                        .begin_command_buffer(*command_buffer, &begin_info)
+                        .map_err(|e| log::error!("Unable to begin command buffer: {}", e))
+                        .unwrap()
+                };
+
+                let render_area = vk::Rect2D {
+                    offset: vk::Offset2D { x: 0, y: 0 },
+                    extent: lve_swapchain.swapchain_extent,
+                };
+
+                let color_clear = vk::ClearValue {
+                    color: vk::ClearColorValue {
+                        float32: [0.1, 0.1, 0.1, 1.0],
+                    },
+                };
+
+                let depth_clear = vk::ClearValue {
+                    depth_stencil: vk::ClearDepthStencilValue {
+                        depth: 1.0,
+                        stencil: 0,
+                    },
+                };
+
+                let clear_values = [color_clear, depth_clear];
+
+                let render_pass_info = vk::RenderPassBeginInfo::builder()
+                    .render_pass(lve_swapchain.render_pass)
+                    .framebuffer(*frame_buffer)
+                    .render_area(render_area)
+                    .clear_values(&clear_values)
+                    .build();
+
+                unsafe {
+                    device.cmd_begin_render_pass(
+                        *command_buffer,
+                        &render_pass_info,
+                        vk::SubpassContents::INLINE,
+                    );
+
+                    lve_pipeline.bind(device, *command_buffer);
+
+                    device.cmd_draw(*command_buffer, 3, 1, 0, 0);
+
+                    device.cmd_end_render_pass(*command_buffer);
+
+                    device
+                        .end_command_buffer(*command_buffer)
+                        .map_err(|e| log::error!("Unable to end command buffer: {}", e))
+                        .unwrap()
+                };
+            });
+
+        command_buffers
+    }
 }
 
 impl Drop for VulkanApp {
@@ -127,7 +248,7 @@ impl Drop for VulkanApp {
                 .device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
 
-            log::debug!("Destroying Swapchain");
+            log::debug!("Destroying swapchain");
             self.lve_swapchain.destroy(&self.lve_device.device);
 
             log::debug!("Destroying pipeline");

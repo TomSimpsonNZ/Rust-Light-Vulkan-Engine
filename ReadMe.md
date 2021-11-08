@@ -76,3 +76,17 @@ The conflicting issue in tutorial 3 was the destruction of the Vulkan objects, w
 - All functions that were `void` in the tutorial now return their respective structs similarly to tutorial 3.
 - Some reformatting was done (witch should have been done during the other commits). This was done using rusts inbuilt formatter, so should not be too hard to replicate
 - My machine is currently giving validation errors at the end of this tutorial. For now I will leave this issue to see if fully implementing everything in the next tutorial fixes the issue, if not then there will be another commit with a fix (hopefully)
+
+# 5.2: Command Buffers Overview ([link](https://www.youtube.com/watch?v=_VOR6q3edig&t=4s&ab_channel=BrendanGalea))
+- The validation errors from the previous tutorial have not disappeared. Will look into it more.
+- The triangle also does not display color correctly, being a dark maroon when it's supposed to be red, 
+and bright green when the other color values are set to 1.0 in the fragment shader file. This is probably linked to the validation errors.
+
+## 5.2.1: Debugging
+- From reading the validation layer output (should have done this when they came up :) ), it became clear that the depth stencil create info struct was not given a format, hence causing the first half of the errors.
+- For the remaining errors, something much stranger was happening. The errors were along the lines of: ` pCreateInfos[0].pColorBlendState->pAttachments[0].srcColorBlendFactor (51) does not fall within the begin..end range of the core VkBlendFactor enumeration tokens and is not an extension added token.` Considering that this value (`srcColorBlendFactor` in this case) was set to be an ash enum (such as `vk::BlendFactor::ONE` which should have a vale of 1), it is hard to believe that `vkCreateGraphicsPipelines()` is receiving a value of 51 in this example. This seems to be an issue with the `color_blend_attachment` and `color_blend_info` structs as they seem 
+to be avoiding rusts memory safety checks. As a result, passing this struct around resulted in random bits of 
+memory being read which caused strange errors. 
+    - This also caused the program to behave differently every time it was run.
+- To solve this, the `color_blend_attachment` and `color_blend_info` struct definitions were moved to the `LvePipeline::create_graphics_pipeline()` function so that they would never leave scope.
+- This seems to be an issue with `ash`, might be solved in more recent versions. 

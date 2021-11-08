@@ -1,8 +1,8 @@
 use super::lve_device::*;
 
 use ash::extensions::khr::Swapchain;
+use ash::version::DeviceV1_0;
 use ash::{vk, Device};
-use ash::version::{DeviceV1_0};
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
@@ -10,10 +10,10 @@ pub struct LveSwapchain {
     swapchain: Swapchain,
     swapchain_khr: vk::SwapchainKHR,
     swapchain_image_format: vk::Format,
-    swapchain_extent: vk::Extent2D,
+    pub swapchain_extent: vk::Extent2D,
     swapchain_images: Vec<vk::Image>,
     swapchain_image_views: Vec<vk::ImageView>,
-    swapchain_framebuffers: Vec<vk::Framebuffer>,
+    pub swapchain_framebuffers: Vec<vk::Framebuffer>,
     pub render_pass: vk::RenderPass,
     depth_images: Vec<vk::Image>,
     depth_image_memories: Vec<vk::DeviceMemory>,
@@ -36,7 +36,7 @@ impl LveSwapchain {
             swapchain_image_format,
         );
 
-        let render_pass = Self::create_render_pass(&lve_device.device, swapchain_image_format);
+        let render_pass = Self::create_render_pass(&lve_device, swapchain_image_format);
 
         let (depth_images, depth_image_memories, depth_image_views) =
             Self::create_depth_resources(lve_device, &swapchain_images, swapchain_extent);
@@ -143,24 +143,22 @@ impl LveSwapchain {
         )
     }
 
-    pub fn acquire_next_image(&self, device: &Device) -> Result<(u32, bool), vk::Result> {
-        unsafe {
-            device
-                .wait_for_fences(
-                    &[self.in_flight_fences[self.current_frame]],
-                    false,
-                    u64::MAX,
-                )
-                .map_err(|e| log::error!("Unable to wait for fences: {}", e))
-                .unwrap();
-
-            self.swapchain.acquire_next_image(
-                self.swapchain_khr,
+    pub unsafe fn acquire_next_image(&self, device: &Device) -> Result<(u32, bool), vk::Result> {
+        device
+            .wait_for_fences(
+                &[self.in_flight_fences[self.current_frame]],
+                false,
                 u64::MAX,
-                self.image_available_semaphores[self.current_frame],
-                vk::Fence::null(),
-            ) // Return the result of acquire next image
-        }
+            )
+            .map_err(|e| log::error!("Unable to wait for fences: {}", e))
+            .unwrap();
+
+        self.swapchain.acquire_next_image(
+            self.swapchain_khr,
+            u64::MAX,
+            self.image_available_semaphores[self.current_frame],
+            vk::Fence::null(),
+        ) // Return the result of acquire next image
     }
 
     pub fn submit_command_buffers(
@@ -168,7 +166,7 @@ impl LveSwapchain {
         device: &Device,
         graphics_queue: &vk::Queue,
         present_queue: &vk::Queue,
-        buffers: &vk::CommandBuffer,
+        buffer: &vk::CommandBuffer,
         image_index: usize,
     ) -> Result<bool, vk::Result> {
         if self.images_in_flight[image_index] != vk::Fence::null() {
@@ -191,7 +189,7 @@ impl LveSwapchain {
         let submit_info = vk::SubmitInfo::builder()
             .wait_semaphores(&wait_semaphores)
             .wait_dst_stage_mask(&wait_stages)
-            .command_buffers(&[*buffers])
+            .command_buffers(&[*buffer])
             .signal_semaphores(&signal_semaphores)
             .build();
 
@@ -407,8 +405,12 @@ impl LveSwapchain {
         (images, image_memories, image_views)
     }
 
-    fn create_render_pass(device: &Device, swapchain_image_format: vk::Format) -> vk::RenderPass {
+    fn create_render_pass(
+        lve_device: &LveDevice,
+        swapchain_image_format: vk::Format,
+    ) -> vk::RenderPass {
         let depth_attachment = vk::AttachmentDescription::builder()
+            .format(Self::find_depth_format(lve_device))
             .samples(vk::SampleCountFlags::TYPE_1)
             .load_op(vk::AttachmentLoadOp::CLEAR)
             .store_op(vk::AttachmentStoreOp::DONT_CARE)
@@ -472,7 +474,8 @@ impl LveSwapchain {
             .build();
 
         unsafe {
-            device
+            lve_device
+                .device
                 .create_render_pass(&render_pass_info, None)
                 .map_err(|e| log::error!("Unable to create render pass: {}", e))
                 .unwrap()
@@ -574,21 +577,19 @@ impl LveSwapchain {
             .iter()
             .map(|f| *f)
             .find(|available_format| {
-                {
-                    available_format.format == vk::Format::B8G8R8A8_UNORM
-                        && available_format.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR
-                }
-            });
-
-        match format {
-            Some(f) => f,
-            None => {
+                available_format.format == vk::Format::B8G8R8A8_UNORM
+                    && available_format.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR
+            })
+            .unwrap_or_else(|| {
                 log::warn!(
                     "Could not find appropriate surface format, returning first available format"
                 );
                 available_formats[0]
-            }
-        }
+            });
+
+        log::debug!("Surface format: {:?}", format);
+
+        format
     }
 
     fn choose_swap_present_mode(
@@ -597,24 +598,18 @@ impl LveSwapchain {
         let present_mode = available_present_modes
             .iter()
             .map(|pm| *pm)
-            .find(|available_present_mode| *available_present_mode == vk::PresentModeKHR::MAILBOX);
-        // .find(|available_present_mode| {
-        //     *available_present_mode == vk::PresentModeKHR::IMMEDIATE
-        // });
-
-        match present_mode {
-            Some(pm) => {
-                log::debug!("Present mode: Mailbox");
-                // log::debug!("Present mode: Immediate");
-                pm
-            }
-
-            None => {
-                log::warn!("Could not find desired present mode, defaulting to V-Sync");
-                log::debug!("Present mode: V-Sync");
+            .find(|available_present_mode| *available_present_mode == vk::PresentModeKHR::MAILBOX)
+            // .find(|available_present_mode| {
+            //     *available_present_mode == vk::PresentModeKHR::IMMEDIATE
+            // })
+            .unwrap_or_else(|| {
+                log::warn!("Could not find desired present mode, defaulting to FIFO");
                 vk::PresentModeKHR::FIFO
-            }
-        }
+            });
+
+        log::debug!("Present mode: {:?}", present_mode);
+
+        present_mode
     }
 
     fn choose_swap_extent(

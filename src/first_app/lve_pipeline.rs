@@ -1,7 +1,7 @@
 // use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
-use ash::version::{DeviceV1_0};
+use ash::version::DeviceV1_0;
 
 use std::ffi::CString;
 
@@ -11,11 +11,9 @@ pub struct PipelineConfigInfo {
     input_assembly_info: vk::PipelineInputAssemblyStateCreateInfo,
     rasterization_info: vk::PipelineRasterizationStateCreateInfo,
     multisample_info: vk::PipelineMultisampleStateCreateInfo,
-    color_blend_attachment: vk::PipelineColorBlendAttachmentState,
-    color_blend_info: vk::PipelineColorBlendStateCreateInfo,
+    // color_blend_attachment: vk::PipelineColorBlendAttachmentState,
+    // color_blend_info: vk::PipelineColorBlendStateCreateInfo,
     depth_stencil_info: vk::PipelineDepthStencilStateCreateInfo,
-    pub pipeline_layout: vk::PipelineLayout,
-    pub render_pass: vk::RenderPass,
     subpass: u32,
 }
 
@@ -30,10 +28,19 @@ impl LvePipeline {
         device: &Device,
         vert_file_path: &str,
         frag_file_path: &str,
-        config_info: &PipelineConfigInfo,
+        config_info: PipelineConfigInfo,
+        render_pass: &vk::RenderPass,
+        pipeline_layout: &vk::PipelineLayout,
     ) -> Self {
         let (graphics_pipeline, vert_shader_module, frag_shader_module) =
-            Self::create_graphics_pipeline(device, vert_file_path, frag_file_path, config_info);
+            Self::create_graphics_pipeline(
+                device,
+                vert_file_path,
+                frag_file_path,
+                config_info,
+                render_pass,
+                pipeline_layout,
+            );
 
         Self {
             graphics_pipeline,
@@ -46,6 +53,14 @@ impl LvePipeline {
         device.destroy_shader_module(self.vert_shader_module, None);
         device.destroy_shader_module(self.frag_shader_module, None);
         device.destroy_pipeline(self.graphics_pipeline, None);
+    }
+
+    pub unsafe fn bind(&self, device: &Device, command_buffer: vk::CommandBuffer) {
+        device.cmd_bind_pipeline(
+            command_buffer,
+            vk::PipelineBindPoint::GRAPHICS,
+            self.graphics_pipeline,
+        );
     }
 
     pub fn default_pipline_config_info(width: u32, height: u32) -> PipelineConfigInfo {
@@ -89,23 +104,23 @@ impl LvePipeline {
             .alpha_to_one_enable(false) // optional
             .build();
 
-        let color_blend_attachment = vk::PipelineColorBlendAttachmentState::builder()
-            .color_write_mask(vk::ColorComponentFlags::all())
-            .blend_enable(false)
-            .src_color_blend_factor(vk::BlendFactor::ONE) // optional
-            .dst_color_blend_factor(vk::BlendFactor::ZERO) // optional
-            .color_blend_op(vk::BlendOp::ADD) // optional
-            .src_alpha_blend_factor(vk::BlendFactor::ONE) // optional
-            .dst_alpha_blend_factor(vk::BlendFactor::ZERO) // optional
-            .alpha_blend_op(vk::BlendOp::ADD) // optional
-            .build();
+        // let color_blend_attachment = vk::PipelineColorBlendAttachmentState::builder()
+        //     .color_write_mask(vk::ColorComponentFlags::all())
+        //     .blend_enable(false)
+        //     .src_color_blend_factor(vk::BlendFactor::ONE) // optional
+        //     .dst_color_blend_factor(vk::BlendFactor::ZERO) // optional
+        //     .color_blend_op(vk::BlendOp::ADD) // optional
+        //     .src_alpha_blend_factor(vk::BlendFactor::ONE) // optional
+        //     .dst_alpha_blend_factor(vk::BlendFactor::ZERO) // optional
+        //     .alpha_blend_op(vk::BlendOp::ADD) // optional
+        //     .build();
 
-        let color_blend_info = vk::PipelineColorBlendStateCreateInfo::builder()
-            .logic_op_enable(false)
-            .logic_op(vk::LogicOp::COPY) // optional
-            .attachments(&[color_blend_attachment])
-            .blend_constants([0.0, 0.0, 0.0, 0.0]) // optional
-            .build();
+        // let color_blend_info = vk::PipelineColorBlendStateCreateInfo::builder()
+        //     .logic_op_enable(false)
+        //     .logic_op(vk::LogicOp::COPY) // optional
+        //     .attachments(&[color_blend_attachment])
+        //     .blend_constants([0.0, 0.0, 0.0, 0.0]) // optional
+        //     .build();
 
         let depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo::builder()
             .depth_test_enable(true)
@@ -125,11 +140,9 @@ impl LvePipeline {
             input_assembly_info,
             rasterization_info,
             multisample_info,
-            color_blend_attachment,
-            color_blend_info,
+            // color_blend_attachment,
+            // color_blend_info,
             depth_stencil_info,
-            pipeline_layout: vk::PipelineLayout::null(),
-            render_pass: vk::RenderPass::null(),
             subpass: 0,
         }
     }
@@ -151,16 +164,18 @@ impl LvePipeline {
         device: &Device,
         vert_file_path: &str,
         frag_file_path: &str,
-        config_info: &PipelineConfigInfo,
+        config_info: PipelineConfigInfo,
+        render_pass: &vk::RenderPass,
+        pipeline_layout: &vk::PipelineLayout,
     ) -> (vk::Pipeline, vk::ShaderModule, vk::ShaderModule) {
         assert_ne!(
-            config_info.pipeline_layout,
-            vk::PipelineLayout::null(),
+            pipeline_layout,
+            &vk::PipelineLayout::null(),
             "Cannot create graphics pipeline:: no pipeline_layout provided in config_info"
         );
         assert_ne!(
-            config_info.render_pass,
-            vk::RenderPass::null(),
+            render_pass,
+            &vk::RenderPass::null(),
             "Cannot create graphics pipeline:: no render_pass provided in config_info"
         );
 
@@ -204,6 +219,24 @@ impl LvePipeline {
             .scissors(&[config_info.scissor])
             .build();
 
+        let color_blend_attachment = vk::PipelineColorBlendAttachmentState::builder()
+            .color_write_mask(vk::ColorComponentFlags::all())
+            .blend_enable(false)
+            .src_color_blend_factor(vk::BlendFactor::ONE) // optional
+            .dst_color_blend_factor(vk::BlendFactor::ZERO) // optional
+            .color_blend_op(vk::BlendOp::ADD) // optional
+            .src_alpha_blend_factor(vk::BlendFactor::ONE) // optional
+            .dst_alpha_blend_factor(vk::BlendFactor::ZERO) // optional
+            .alpha_blend_op(vk::BlendOp::ADD) // optional
+            .build();
+
+        let color_blend_info = vk::PipelineColorBlendStateCreateInfo::builder()
+            .logic_op_enable(false)
+            .logic_op(vk::LogicOp::COPY) // optional
+            .attachments(&[color_blend_attachment])
+            .blend_constants([0.0, 0.0, 0.0, 0.0]) // optional
+            .build();
+
         let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
             .stages(&shader_stages)
             .vertex_input_state(&vertex_input_info)
@@ -211,11 +244,11 @@ impl LvePipeline {
             .viewport_state(&viewport_info)
             .rasterization_state(&config_info.rasterization_info)
             .multisample_state(&config_info.multisample_info)
-            .color_blend_state(&config_info.color_blend_info)
+            .color_blend_state(&color_blend_info)
             .depth_stencil_state(&config_info.depth_stencil_info)
             // .dynamic_state()
-            .layout(config_info.pipeline_layout)
-            .render_pass(config_info.render_pass)
+            .layout(*pipeline_layout)
+            .render_pass(*render_pass)
             .subpass(config_info.subpass)
             .base_pipeline_index(-1)
             .base_pipeline_handle(vk::Pipeline::null())
