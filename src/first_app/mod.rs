@@ -17,7 +17,7 @@ use winit::{
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
-use glm;
+extern crate nalgebra as na;
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
@@ -251,13 +251,13 @@ impl VulkanApp {
     fn load_models(lve_device: &LveDevice) -> LveModel {
         let vertices = vec![
             Vertex {
-                position: glm::vec2(0.0, -0.5),
+                position: na::vector![0.0, -0.5],
             },
             Vertex {
-                position: glm::vec2(0.5, 0.5),
+                position: na::vector![0.5, 0.5],
             },
             Vertex {
-                position: glm::vec2(-0.5, 0.5),
+                position: na::vector![-0.5, 0.5],
             },
         ];
 
