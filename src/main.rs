@@ -21,7 +21,7 @@ fn main() {
         // Set the behavior to poll the window for user events
         *control_flow = ControlFlow::Poll;
 
-        // Create a reference to the vulkan app here so that it is dropped 
+        // Create a reference to the vulkan app here so that it is dropped
         // properly and can be used in the loop
         let app = &mut vulkan_app;
 
@@ -32,11 +32,11 @@ fn main() {
             } => {
                 log::debug!("Closing window");
                 *control_flow = ControlFlow::Exit
-            },
+            }
             Event::MainEventsCleared => {
                 app.draw_frame();
-            },
-            _ => ()
+            }
+            _ => (),
         }
     });
 }

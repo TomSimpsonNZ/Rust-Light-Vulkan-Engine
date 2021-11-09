@@ -1,4 +1,5 @@
-// use ash::version::DeviceV1_0;
+use super::lve_model::*;
+
 use ash::{vk, Device};
 
 use ash::version::DeviceV1_0;
@@ -207,9 +208,12 @@ impl LvePipeline {
 
         let shader_stages = [vert_shader_stage_info, frag_shader_stage_info];
 
+        let binding_descriptions = Vertex::get_binding_descriptions();
+        let attribute_descriptions = Vertex::get_attribute_descriptions();
+
         let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
-            // .vertex_binding_descriptions() null since vertices are hard coded
-            // .vertex_attribute_description_count(0) same here
+            .vertex_binding_descriptions(&binding_descriptions)
+            .vertex_attribute_descriptions(&attribute_descriptions)
             .build();
 
         let viewport_info = vk::PipelineViewportStateCreateInfo::builder()

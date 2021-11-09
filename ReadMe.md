@@ -90,3 +90,7 @@ memory being read which caused strange errors.
     - This also caused the program to behave differently every time it was run.
 - To solve this, the `color_blend_attachment` and `color_blend_info` struct definitions were moved to the `LvePipeline::create_graphics_pipeline()` function so that they would never leave scope.
 - This seems to be an issue with `ash`, might be solved in more recent versions. 
+
+# 6: Vertex Buffers ([link](https://www.youtube.com/watch?v=mnKp501RXDc&t=195s&ab_channel=BrendanGalea))
+- No changes of note from the tutorial
+

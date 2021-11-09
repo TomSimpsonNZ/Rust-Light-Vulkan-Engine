@@ -1,8 +1,10 @@
 mod lve_device;
+mod lve_model;
 mod lve_pipeline;
 mod lve_swapchain;
 
 use lve_device::*;
+use lve_model::*;
 use lve_pipeline::*;
 use lve_swapchain::*;
 
@@ -15,6 +17,8 @@ use winit::{
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
+use glm;
+
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 const NAME: &str = "Hello Vulkan!";
@@ -26,6 +30,7 @@ pub struct VulkanApp {
     lve_pipeline: LvePipeline,
     pipeline_layout: vk::PipelineLayout, // I think this should be a part of the pipeline module
     command_buffers: Vec<vk::CommandBuffer>,
+    lve_model: LveModel,
 }
 
 impl VulkanApp {
@@ -38,6 +43,8 @@ impl VulkanApp {
         let window_extent = Self::get_window_extent(&window);
         let lve_swapchain = LveSwapchain::new(&lve_device, window_extent);
 
+        let lve_model = Self::load_models(&lve_device);
+
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
         let lve_pipeline =
             Self::create_pipeline(&lve_device.device, &lve_swapchain, &pipeline_layout);
@@ -47,6 +54,7 @@ impl VulkanApp {
             lve_device.command_pool,
             &lve_swapchain,
             &lve_pipeline,
+            &lve_model,
         );
 
         (
@@ -57,6 +65,7 @@ impl VulkanApp {
                 lve_pipeline,
                 pipeline_layout,
                 command_buffers,
+                lve_model,
             },
             event_loop,
         )
@@ -136,8 +145,8 @@ impl VulkanApp {
             "shaders/simple_shader.vert.spv",
             "shaders/simple_shader.frag.spv",
             pipeline_config,
-                &lve_swapchain.render_pass,
-                pipeline_layout,
+            &lve_swapchain.render_pass,
+            pipeline_layout,
         )
     }
 
@@ -160,6 +169,7 @@ impl VulkanApp {
         command_pool: vk::CommandPool,
         lve_swapchain: &LveSwapchain,
         lve_pipeline: &LvePipeline,
+        lve_model: &LveModel,
     ) -> Vec<vk::CommandBuffer> {
         let alloc_info = vk::CommandBufferAllocateInfo::builder()
             .level(vk::CommandBufferLevel::PRIMARY)
@@ -223,7 +233,8 @@ impl VulkanApp {
 
                     lve_pipeline.bind(device, *command_buffer);
 
-                    device.cmd_draw(*command_buffer, 3, 1, 0, 0);
+                    lve_model.bind(device, *command_buffer);
+                    lve_model.draw(device, *command_buffer);
 
                     device.cmd_end_render_pass(*command_buffer);
 
@@ -236,6 +247,22 @@ impl VulkanApp {
 
         command_buffers
     }
+
+    fn load_models(lve_device: &LveDevice) -> LveModel {
+        let vertices = vec![
+            Vertex {
+                position: glm::vec2(0.0, -0.5),
+            },
+            Vertex {
+                position: glm::vec2(0.5, 0.5),
+            },
+            Vertex {
+                position: glm::vec2(-0.5, 0.5),
+            },
+        ];
+
+        LveModel::new(lve_device, &vertices)
+    }
 }
 
 impl Drop for VulkanApp {
@@ -247,6 +274,9 @@ impl Drop for VulkanApp {
             self.lve_device
                 .device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
+
+            log::debug!("Destrying vertex buffers");
+            self.lve_model.destroy(&self.lve_device.device);
 
             log::debug!("Destroying swapchain");
             self.lve_swapchain.destroy(&self.lve_device.device);
