@@ -10,11 +10,11 @@ use ash::{vk, Device, Entry, Instance};
 
 use ash::version::{DeviceV1_0, EntryV1_0, InstanceV1_0};
 
-use glm;
+extern crate nalgebra as na;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Vertex {
-    pub position: glm::Vec2,
+    pub position: na::Vector2<f32>,
 }
 
 impl Vertex {

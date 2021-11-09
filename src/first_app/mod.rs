@@ -17,7 +17,7 @@ use winit::{
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
-use glm;
+extern crate nalgebra as na;
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
@@ -249,17 +249,19 @@ impl VulkanApp {
     }
 
     fn load_models(lve_device: &LveDevice) -> LveModel {
-        let vertices = vec![
+        let triangle = vec![
             Vertex {
-                position: glm::vec2(0.0, -0.5),
+                position: na::vector![0.0, -0.5],
             },
             Vertex {
-                position: glm::vec2(0.5, 0.5),
+                position: na::vector![0.5, 0.5],
             },
             Vertex {
-                position: glm::vec2(-0.5, 0.5),
+                position: na::vector![-0.5, 0.5],
             },
         ];
+
+        let vertices = generate_sierpinski_triangle(5, triangle);
 
         LveModel::new(lve_device, &vertices)
     }
@@ -287,5 +289,37 @@ impl Drop for VulkanApp {
             log::debug!("Destroying device");
             self.lve_device.destroy()
         }
+    }
+}
+
+fn generate_sierpinski_triangle(mut iterations: u32, triangle: Vec<Vertex>) -> Vec<Vertex> {
+    let mut triangles = vec![triangle];
+
+    for i in 0..iterations {
+        triangles = triangles
+            .iter()
+            .map(|triangle| {
+                let mut new_triangles = Vec::new();
+
+                for j in 0..3 {
+                    let v_1 = triangle[j];
+                    let v_2 = midpoint(&v_1, &triangle[(j + 1) % 3]);
+                    let v_3 = midpoint(&v_1, &triangle[(j + 2) % 3]);
+                    let new_triangle = vec![v_1, v_2, v_3];
+                    new_triangles.push(new_triangle);
+                }
+
+                new_triangles
+            })
+            .collect::<Vec<_>>()
+            .concat();
+    }
+
+    triangles.concat()
+}
+
+fn midpoint(v1: &Vertex, v2: &Vertex) -> Vertex {
+    Vertex {
+        position: 0.5 * (v1.position + v2.position),
     }
 }
