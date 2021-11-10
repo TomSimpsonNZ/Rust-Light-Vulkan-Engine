@@ -2,19 +2,16 @@ use std::mem::size_of;
 
 use super::lve_device::*;
 
-use ash::extensions::{
-    ext::DebugUtils, // Read more about debugging here: https://www.lunarg.com/new-tutorial-for-vulkan-debug-utilities-extension/
-    khr::{Surface, Swapchain, Win32Surface},
-};
-use ash::{vk, Device, Entry, Instance};
+use ash::{vk, Device};
 
-use ash::version::{DeviceV1_0, EntryV1_0, InstanceV1_0};
+use ash::version::DeviceV1_0;
 
 extern crate nalgebra as na;
 
 #[derive(Clone, Copy)]
 pub struct Vertex {
     pub position: na::Vector2<f32>,
+    pub color: na::Vector3<f32>,
 }
 
 impl Vertex {
@@ -29,12 +26,20 @@ impl Vertex {
     }
 
     pub fn get_attribute_descriptions() -> Vec<vk::VertexInputAttributeDescription> {
-        vec![vk::VertexInputAttributeDescription::builder()
-            .binding(0)
-            .location(0)
-            .format(vk::Format::R32G32_SFLOAT)
-            .offset(0)
-            .build()]
+        vec![
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(0)
+                .format(vk::Format::R32G32_SFLOAT)
+                .offset(0)
+                .build(),
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(1)
+                .format(vk::Format::R32G32B32_SFLOAT)
+                .offset(size_of::<na::Vector2<f32>>() as u32) // Using size of the position field
+                .build(),
+        ]
     }
 }
 
@@ -108,11 +113,5 @@ impl LveModel {
         };
 
         (vertex_buffer, vertex_buffer_memory, vertex_count as u32)
-    }
-}
-
-impl Drop for LveModel {
-    fn drop(&mut self) {
-        log::debug!("Dropping model")
     }
 }

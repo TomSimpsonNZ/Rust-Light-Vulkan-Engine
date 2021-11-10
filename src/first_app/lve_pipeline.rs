@@ -279,9 +279,3 @@ impl LvePipeline {
         }
     }
 }
-
-impl Drop for LvePipeline {
-    fn drop(&mut self) {
-        log::debug!("Dropping pipeline");
-    }
-}

@@ -577,7 +577,7 @@ impl LveSwapchain {
             .iter()
             .map(|f| *f)
             .find(|available_format| {
-                available_format.format == vk::Format::B8G8R8A8_UNORM
+                available_format.format == vk::Format::B8G8R8A8_SRGB
                     && available_format.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR
             })
             .unwrap_or_else(|| {
@@ -630,11 +630,5 @@ impl LveSwapchain {
                 ),
             };
         }
-    }
-}
-
-impl Drop for LveSwapchain {
-    fn drop(&mut self) {
-        log::debug! {"Dropping swapchain"};
     }
 }

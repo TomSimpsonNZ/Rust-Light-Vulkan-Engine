@@ -834,9 +834,3 @@ impl LveDevice {
         }
     }
 }
-
-impl Drop for LveDevice {
-    fn drop(&mut self) {
-        log::debug! {"Droppping device"}
-    }
-}

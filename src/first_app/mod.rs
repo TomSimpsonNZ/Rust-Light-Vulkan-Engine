@@ -252,12 +252,15 @@ impl VulkanApp {
         let vertices = vec![
             Vertex {
                 position: na::vector![0.0, -0.5],
+                color: na::vector![1.0, 0.0, 0.0],
             },
             Vertex {
                 position: na::vector![0.5, 0.5],
+                color: na::vector![0.0, 1.0, 0.0],
             },
             Vertex {
                 position: na::vector![-0.5, 0.5],
+                color: na::vector![0.0, 0.0, 1.0],
             },
         ];
 
@@ -275,7 +278,7 @@ impl Drop for VulkanApp {
                 .device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
 
-            log::debug!("Destrying vertex buffers");
+            log::debug!("Destroying vertex buffers");
             self.lve_model.destroy(&self.lve_device.device);
 
             log::debug!("Destroying swapchain");

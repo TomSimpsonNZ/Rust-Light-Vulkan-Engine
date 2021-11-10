@@ -93,4 +93,8 @@ memory being read which caused strange errors.
 
 # 6: Vertex Buffers ([link](https://www.youtube.com/watch?v=mnKp501RXDc&t=195s&ab_channel=BrendanGalea))
 - No changes of note from the tutorial
+- A solution to the exercise in the video can be found in the fork.
 
+# 7: Fragment Interpolation ([link](https://www.youtube.com/watch?v=ngoZZkMuCOM&t=12s&ab_channel=BrendanGalea))
+- They is no rust equivalent of `offsetof()` that I am aware of at this point in time. So a workaround was used that is only slightly better than just hard coding in an offset of 8 bytes :).
+- I also decided to finally remove the drop implementation for the `lve_*` sub-modules. They weren't really doing anything. 
