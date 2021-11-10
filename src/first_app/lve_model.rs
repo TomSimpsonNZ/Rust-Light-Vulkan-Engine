@@ -1,10 +1,9 @@
-use std::mem::size_of;
-
 use super::lve_device::*;
 
+use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
-use ash::version::DeviceV1_0;
+use std::mem::size_of;
 
 extern crate nalgebra as na;
 

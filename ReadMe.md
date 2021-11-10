@@ -108,3 +108,6 @@ old swapchain is out of date at this point. Then in the `draw()` function, recre
 - The `viewport_count()` and `scissor_count()` needed to be set to 1 while creating `viewport_info` as Vulkan thinks that 0 > 1 ...
 - Implementation of old swapchain is also a bit different, instead of passing the whole `LveSwapchain` struct, we just pass the old swapchain_khr into `LveSwapchain::new()`. This is wrapped in an option to account for the times where there is no old swapchain.
 
+# 9: Push Constants ([link](https://www.youtube.com/watch?v=wlLGLWI9Fdc&ab_channel=BrendanGalea))
+- I could not find a nice way to align the fields of the `SimplePushConstantData` struct, so I just made the position vector a `vec4`. I am not proud of this :).
+    - If I find a better method of alignment in the future I will come back and fix this.
