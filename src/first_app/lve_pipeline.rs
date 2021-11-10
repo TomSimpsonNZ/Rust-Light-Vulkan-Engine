@@ -7,14 +7,15 @@ use ash::version::DeviceV1_0;
 use std::ffi::CString;
 
 pub struct PipelineConfigInfo {
-    viewport: vk::Viewport,
-    scissor: vk::Rect2D,
+    viewport_info: vk::PipelineViewportStateCreateInfo,
     input_assembly_info: vk::PipelineInputAssemblyStateCreateInfo,
     rasterization_info: vk::PipelineRasterizationStateCreateInfo,
     multisample_info: vk::PipelineMultisampleStateCreateInfo,
     // color_blend_attachment: vk::PipelineColorBlendAttachmentState,
     // color_blend_info: vk::PipelineColorBlendStateCreateInfo,
     depth_stencil_info: vk::PipelineDepthStencilStateCreateInfo,
+    dynamic_state_enables: Vec<vk::DynamicState>,
+    dynamic_state_info: vk::PipelineDynamicStateCreateInfo,
     subpass: u32,
 }
 
@@ -64,24 +65,11 @@ impl LvePipeline {
         );
     }
 
-    pub fn default_pipline_config_info(width: u32, height: u32) -> PipelineConfigInfo {
+    pub fn default_pipline_config_info() -> PipelineConfigInfo {
         let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
             .topology(vk::PrimitiveTopology::TRIANGLE_LIST) // Every three vertices are grouped into a triangle
             .primitive_restart_enable(false) // We aren't using triangle strip topology, so this is false
             .build();
-
-        let viewport = vk::Viewport::builder()
-            .x(0.0)
-            .y(0.0)
-            .width(width as f32)
-            .height(height as f32)
-            .min_depth(0.0)
-            .max_depth(1.0)
-            .build();
-
-        let offset = vk::Offset2D::builder().x(0).y(0).build();
-        let extent = vk::Extent2D::builder().width(width).height(height).build();
-        let scissor = vk::Rect2D::builder().offset(offset).extent(extent).build();
 
         let rasterization_info = vk::PipelineRasterizationStateCreateInfo::builder()
             .depth_clamp_enable(false) // forces the values of gl position to be between 0 and 1
@@ -103,6 +91,11 @@ impl LvePipeline {
             // .sample_mask()                       // optional
             .alpha_to_coverage_enable(false) // optional
             .alpha_to_one_enable(false) // optional
+            .build();
+
+        let viewport_info = vk::PipelineViewportStateCreateInfo::builder()
+            .viewport_count(1)
+            .scissor_count(1)
             .build();
 
         // let color_blend_attachment = vk::PipelineColorBlendAttachmentState::builder()
@@ -135,15 +128,23 @@ impl LvePipeline {
             // .back()                                  // optional
             .build();
 
+        let dynamic_state_enables = vec![vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
+
+        let dynamic_state_info = vk::PipelineDynamicStateCreateInfo::builder()
+            .dynamic_states(&dynamic_state_enables)
+            .flags(vk::PipelineDynamicStateCreateFlags::empty())
+            .build();
+
         PipelineConfigInfo {
-            viewport,
-            scissor,
+            viewport_info,
             input_assembly_info,
             rasterization_info,
             multisample_info,
             // color_blend_attachment,
             // color_blend_info,
             depth_stencil_info,
+            dynamic_state_enables,
+            dynamic_state_info,
             subpass: 0,
         }
     }
@@ -216,13 +217,6 @@ impl LvePipeline {
             .vertex_attribute_descriptions(&attribute_descriptions)
             .build();
 
-        let viewport_info = vk::PipelineViewportStateCreateInfo::builder()
-            .viewport_count(1)
-            .viewports(&[config_info.viewport])
-            .scissor_count(1)
-            .scissors(&[config_info.scissor])
-            .build();
-
         let color_blend_attachment = vk::PipelineColorBlendAttachmentState::builder()
             .color_write_mask(vk::ColorComponentFlags::all())
             .blend_enable(false)
@@ -245,12 +239,12 @@ impl LvePipeline {
             .stages(&shader_stages)
             .vertex_input_state(&vertex_input_info)
             .input_assembly_state(&config_info.input_assembly_info)
-            .viewport_state(&viewport_info)
+            .viewport_state(&config_info.viewport_info)
             .rasterization_state(&config_info.rasterization_info)
             .multisample_state(&config_info.multisample_info)
             .color_blend_state(&color_blend_info)
             .depth_stencil_state(&config_info.depth_stencil_info)
-            // .dynamic_state()
+            .dynamic_state(&config_info.dynamic_state_info)
             .layout(*pipeline_layout)
             .render_pass(*render_pass)
             .subpass(config_info.subpass)

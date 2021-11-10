@@ -3,6 +3,7 @@ mod first_app;
 use first_app::*;
 
 use winit::{
+    dpi::PhysicalSize,
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
 };
@@ -32,6 +33,14 @@ fn main() {
             } => {
                 log::debug!("Closing window");
                 *control_flow = ControlFlow::Exit
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Resized(PhysicalSize { width, height }),
+                ..
+            } => {
+                log::debug!("Resizing window");
+                log::info!("New window size: {}x{}", width, height);
+                app.recreate_swapchain();
             }
             Event::MainEventsCleared => {
                 app.draw_frame();

@@ -97,4 +97,14 @@ memory being read which caused strange errors.
 
 # 7: Fragment Interpolation ([link](https://www.youtube.com/watch?v=ngoZZkMuCOM&t=12s&ab_channel=BrendanGalea))
 - They is no rust equivalent of `offsetof()` that I am aware of at this point in time. So a workaround was used that is only slightly better than just hard coding in an offset of 8 bytes :).
-- I also decided to finally remove the drop implementation for the `lve_*` sub-modules. They weren't really doing anything. 
+- I also decided to finally remove the drop implementation for the `lve_*` sub-modules. They weren't really doing anything.
+
+# 8: Swapchain Recreation and Dynamic Viewports ([link](https://www.youtube.com/watch?v=0IIqvi3Z0ng&ab_channel=BrendanGalea))
+- Winit is very different to glfw, so the first part of this tutorial is very different (but in my opinion, a lot nicer).
+- Because of winit's differences, I saw a, in my opinion, much nicer way of handling window resizing. Whenever winit detects that the window is resized, the `recreate_swapchain()` function is called. Since we know that the 
+old swapchain is out of date at this point. Then in the `draw()` function, recreate swapchain is only called if there is some other event that causes the swapchain to become out of date.
+- There is a possible mistake in Brendan's code which he doesn't notice as he is on macOS. As he points out macOS pauses the program until the window has finished resizing, meaning that he is not creating as many new swapchains as other platforms such as windows or linux. Since the tutorial code does not destroy the old swapchain when it creates a new one, Vulkan begins to have a cry after a large amount of resizing. To resolve this a call to the `LveSwapchain::destroy()` function was added to `recreate_swapchain()`.
+- This is also happening to the pipeline, so a call to `LvePipeline::destroy()` was also added.
+- The `viewport_count()` and `scissor_count()` needed to be set to 1 while creating `viewport_info` as Vulkan thinks that 0 > 1 ...
+- Implementation of old swapchain is also a bit different, instead of passing the whole `LveSwapchain` struct, we just pass the old swapchain_khr into `LveSwapchain::new()`. This is wrapped in an option to account for the times where there is no old swapchain.
+

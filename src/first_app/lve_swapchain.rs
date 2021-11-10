@@ -8,7 +8,7 @@ const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
 pub struct LveSwapchain {
     swapchain: Swapchain,
-    swapchain_khr: vk::SwapchainKHR,
+    pub swapchain_khr: vk::SwapchainKHR,
     swapchain_image_format: vk::Format,
     pub swapchain_extent: vk::Extent2D,
     swapchain_images: Vec<vk::Image>,
@@ -26,9 +26,18 @@ pub struct LveSwapchain {
 }
 
 impl LveSwapchain {
-    pub fn new(lve_device: &LveDevice, window_extent: vk::Extent2D) -> Self {
+    pub fn new(
+        lve_device: &LveDevice,
+        window_extent: vk::Extent2D,
+        old_swapchain: Option<vk::SwapchainKHR>,
+    ) -> Self {
+        let old_swapchain = match old_swapchain {
+            Some(swapchain) => swapchain,
+            None => vk::SwapchainKHR::null(),
+        };
+
         let (swapchain, swapchain_khr, swapchain_images, swapchain_image_format, swapchain_extent) =
-            Self::create_swapchain(lve_device, window_extent);
+            Self::create_swapchain(lve_device, window_extent, old_swapchain);
 
         let swapchain_image_views = Self::create_image_views(
             &lve_device.device,
@@ -225,6 +234,7 @@ impl LveSwapchain {
     fn create_swapchain(
         lve_device: &LveDevice,
         window_extent: vk::Extent2D,
+        old_swapchain: vk::SwapchainKHR,
     ) -> (
         Swapchain,
         vk::SwapchainKHR,
@@ -274,7 +284,7 @@ impl LveSwapchain {
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .present_mode(present_mode)
             .clipped(true)
-            .old_swapchain(vk::SwapchainKHR::null())
+            .old_swapchain(old_swapchain)
             .build();
 
         let swapchain = Swapchain::new(&lve_device.instance, &lve_device.device);

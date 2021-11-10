@@ -41,7 +41,7 @@ impl VulkanApp {
         let lve_device = LveDevice::new(&window, WIDTH, HEIGHT);
 
         let window_extent = Self::get_window_extent(&window);
-        let lve_swapchain = LveSwapchain::new(&lve_device, window_extent);
+        let lve_swapchain = LveSwapchain::new(&lve_device, window_extent, None);
 
         let lve_model = Self::load_models(&lve_device);
 
@@ -53,8 +53,6 @@ impl VulkanApp {
             &lve_device.device,
             lve_device.command_pool,
             &lve_swapchain,
-            &lve_pipeline,
-            &lve_model,
         );
 
         (
@@ -72,21 +70,37 @@ impl VulkanApp {
     }
 
     pub fn draw_frame(&mut self) {
-        let (image_index, result) = unsafe {
+        let extent = Self::get_window_extent(&self.window);
+
+        if extent.width == 0 || extent.height == 0 {
+            return; // Don't do anything if the window is minimised
+        }
+
+        let (image_index, is_subopt) = unsafe {
             self.lve_swapchain
                 .acquire_next_image(&self.lve_device.device)
-                .map_err(|e| log::error!("Unable to acquire next image: {}", e))
+                .map_err(|e| match e {
+                    vk::Result::ERROR_OUT_OF_DATE_KHR => {
+                        log::error!("Out of date KHR!");
+                        self.recreate_swapchain();
+                        return;
+                    }
+                    _ => {
+                        log::error!("Unable to aquire next image");
+                    }
+                })
                 .unwrap()
         };
 
-        match result {
+        match is_subopt {
             true => {
-                log::error!("Swapchain is suboptimal for surface");
-                panic!("Will handle this better later");
+                log::warn!("Swapchain is suboptimal for surface");
+                self.recreate_swapchain();
             }
-
             false => {}
         }
+
+        self.record_command_buffer(image_index as usize);
 
         let _result = self
             .lve_swapchain
@@ -109,6 +123,68 @@ impl VulkanApp {
         };
     }
 
+    pub fn recreate_swapchain(&mut self) {
+        let extent = Self::get_window_extent(&self.window);
+
+        if extent.width == 0 || extent.height == 0 {
+            return; // Don't do anything if the window is minimised
+        }
+
+        log::debug!("Recreating swapchain");
+
+        unsafe {
+            self.lve_device
+                .device
+                .device_wait_idle()
+                .map_err(|e| log::error!("Cannot wait: {}", e))
+                .unwrap()
+        };
+
+        let new_lve_swapchain = LveSwapchain::new(
+            &self.lve_device,
+            extent,
+            Some(self.lve_swapchain.swapchain_khr),
+        );
+
+        let new_command_buffers: Option<Vec<vk::CommandBuffer>> =
+            if new_lve_swapchain.image_count() != self.command_buffers.len() {
+                unsafe { self.free_command_buffers() };
+                Some(Self::create_command_buffers(
+                    &self.lve_device.device,
+                    self.lve_device.command_pool,
+                    &new_lve_swapchain,
+                ))
+            } else {
+                None
+            };
+
+        let new_lve_pipeline = Self::create_pipeline(
+            &self.lve_device.device,
+            &new_lve_swapchain,
+            &self.pipeline_layout,
+        );
+
+        unsafe {
+            self.lve_swapchain.destroy(&self.lve_device.device);
+            self.lve_pipeline.destroy(&self.lve_device.device)
+        };
+
+        self.lve_swapchain = new_lve_swapchain;
+        self.lve_pipeline = new_lve_pipeline;
+
+        match new_command_buffers {
+            Some(cbs) => self.command_buffers = cbs,
+            None => {}
+        }
+    }
+
+    unsafe fn free_command_buffers(&mut self) {
+        self.lve_device
+            .device
+            .free_command_buffers(self.lve_device.command_pool, &self.command_buffers);
+        self.command_buffers.clear();
+    }
+
     fn get_window_extent(window: &Window) -> vk::Extent2D {
         let window_inner_size = window.inner_size();
         vk::Extent2D {
@@ -125,7 +201,7 @@ impl VulkanApp {
         let winit_window = WindowBuilder::new()
             .with_title(name)
             .with_inner_size(LogicalSize::new(w, h))
-            .with_resizable(false)
+            .with_resizable(true)
             .build(&event_loop)
             .unwrap();
 
@@ -137,8 +213,16 @@ impl VulkanApp {
         lve_swapchain: &LveSwapchain,
         pipeline_layout: &vk::PipelineLayout,
     ) -> LvePipeline {
-        let pipeline_config =
-            LvePipeline::default_pipline_config_info(lve_swapchain.width(), lve_swapchain.height());
+        assert!(
+            lve_swapchain.swapchain_khr != vk::SwapchainKHR::null(),
+            "Cannot create pipeline before swapchain"
+        );
+        assert!(
+            pipeline_layout != &vk::PipelineLayout::null(),
+            "Cannot create pipeline before pipeline layout"
+        );
+
+        let pipeline_config = LvePipeline::default_pipline_config_info();
 
         LvePipeline::new(
             device,
@@ -168,8 +252,6 @@ impl VulkanApp {
         device: &Device,
         command_pool: vk::CommandPool,
         lve_swapchain: &LveSwapchain,
-        lve_pipeline: &LvePipeline,
-        lve_model: &LveModel,
     ) -> Vec<vk::CommandBuffer> {
         let alloc_info = vk::CommandBufferAllocateInfo::builder()
             .level(vk::CommandBufferLevel::PRIMARY)
@@ -185,67 +267,84 @@ impl VulkanApp {
         };
 
         command_buffers
-            .iter()
-            .zip(lve_swapchain.swapchain_framebuffers.iter())
-            .for_each(|(command_buffer, frame_buffer)| {
-                let begin_info = vk::CommandBufferBeginInfo::builder().build();
+    }
 
-                unsafe {
-                    device
-                        .begin_command_buffer(*command_buffer, &begin_info)
-                        .map_err(|e| log::error!("Unable to begin command buffer: {}", e))
-                        .unwrap()
-                };
+    fn record_command_buffer(&mut self, image_index: usize) {
+        let begin_info = vk::CommandBufferBeginInfo::builder().build();
 
-                let render_area = vk::Rect2D {
-                    offset: vk::Offset2D { x: 0, y: 0 },
-                    extent: lve_swapchain.swapchain_extent,
-                };
+        let command_buffer = self.command_buffers[image_index];
+        let device = &self.lve_device.device;
 
-                let color_clear = vk::ClearValue {
-                    color: vk::ClearColorValue {
-                        float32: [0.1, 0.1, 0.1, 1.0],
-                    },
-                };
+        unsafe {
+            device
+                .begin_command_buffer(command_buffer, &begin_info)
+                .map_err(|e| log::error!("Unable to begin command buffer: {}", e))
+                .unwrap()
+        };
 
-                let depth_clear = vk::ClearValue {
-                    depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
-                        stencil: 0,
-                    },
-                };
+        let render_area = vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent: self.lve_swapchain.swapchain_extent,
+        };
 
-                let clear_values = [color_clear, depth_clear];
+        let color_clear = vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0.1, 0.1, 0.1, 1.0],
+            },
+        };
 
-                let render_pass_info = vk::RenderPassBeginInfo::builder()
-                    .render_pass(lve_swapchain.render_pass)
-                    .framebuffer(*frame_buffer)
-                    .render_area(render_area)
-                    .clear_values(&clear_values)
-                    .build();
+        let depth_clear = vk::ClearValue {
+            depth_stencil: vk::ClearDepthStencilValue {
+                depth: 1.0,
+                stencil: 0,
+            },
+        };
 
-                unsafe {
-                    device.cmd_begin_render_pass(
-                        *command_buffer,
-                        &render_pass_info,
-                        vk::SubpassContents::INLINE,
-                    );
+        let clear_values = [color_clear, depth_clear];
 
-                    lve_pipeline.bind(device, *command_buffer);
+        let render_pass_info = vk::RenderPassBeginInfo::builder()
+            .render_pass(self.lve_swapchain.render_pass)
+            .framebuffer(self.lve_swapchain.swapchain_framebuffers[image_index])
+            .render_area(render_area)
+            .clear_values(&clear_values)
+            .build();
 
-                    lve_model.bind(device, *command_buffer);
-                    lve_model.draw(device, *command_buffer);
+        unsafe {
+            device.cmd_begin_render_pass(
+                command_buffer,
+                &render_pass_info,
+                vk::SubpassContents::INLINE,
+            );
 
-                    device.cmd_end_render_pass(*command_buffer);
+            let viewport = vk::Viewport::builder()
+                .x(0.0)
+                .y(0.0)
+                .width(self.lve_swapchain.width() as f32)
+                .height(self.lve_swapchain.height() as f32)
+                .min_depth(0.0)
+                .max_depth(1.0)
+                .build();
 
-                    device
-                        .end_command_buffer(*command_buffer)
-                        .map_err(|e| log::error!("Unable to end command buffer: {}", e))
-                        .unwrap()
-                };
-            });
+            let scissor = vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: self.lve_swapchain.swapchain_extent,
+            };
 
-        command_buffers
+            device.cmd_set_viewport(command_buffer, 0, &[viewport]);
+            device.cmd_set_scissor(command_buffer, 0, &[scissor]);
+
+            self.lve_pipeline.bind(device, command_buffer);
+
+            self.lve_model.bind(device, command_buffer);
+            self.lve_model.draw(device, command_buffer);
+
+            device.cmd_end_render_pass(command_buffer);
+
+            device
+                .end_command_buffer(command_buffer)
+                .map_err(|e| log::error!("Unable to end command buffer: {}", e))
+                .unwrap()
+        };
     }
 
     fn load_models(lve_device: &LveDevice) -> LveModel {
