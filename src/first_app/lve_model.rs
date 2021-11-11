@@ -1,4 +1,6 @@
 use super::lve_device::*;
+use super::Color;
+use super::Pos;
 
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
@@ -9,8 +11,8 @@ extern crate nalgebra as na;
 
 #[derive(Clone, Copy)]
 pub struct Vertex {
-    pub position: na::Vector2<f32>,
-    pub color: na::Vector3<f32>,
+    pub position: Pos,
+    pub color: Color,
 }
 
 impl Vertex {
@@ -36,7 +38,7 @@ impl Vertex {
                 .binding(0)
                 .location(1)
                 .format(vk::Format::R32G32B32_SFLOAT)
-                .offset(size_of::<na::Vector2<f32>>() as u32) // Using size of the position field
+                .offset(size_of::<Pos>() as u32) // Using size of the position field
                 .build(),
         ]
     }

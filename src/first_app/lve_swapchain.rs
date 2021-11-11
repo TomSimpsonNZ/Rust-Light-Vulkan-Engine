@@ -541,7 +541,7 @@ impl LveSwapchain {
         let mut render_finished_semaphore = Vec::new();
         let mut in_flight_fences = Vec::new();
 
-        for i in 0..MAX_FRAMES_IN_FLIGHT {
+        for _ in 0..MAX_FRAMES_IN_FLIGHT {
             unsafe {
                 image_available_semaphores.push(
                     device

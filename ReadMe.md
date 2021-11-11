@@ -111,3 +111,10 @@ old swapchain is out of date at this point. Then in the `draw()` function, recre
 # 9: Push Constants ([link](https://www.youtube.com/watch?v=wlLGLWI9Fdc&ab_channel=BrendanGalea))
 - I could not find a nice way to align the fields of the `SimplePushConstantData` struct, so I just made the position vector a `vec4`. I am not proud of this :).
     - If I find a better method of alignment in the future I will come back and fix this.
+
+## Push Constant Fix:
+- It seems that Ash's implementation of push constants requires that the push constants ranges for the 
+vertex and the fragment shaders be split into separate structs.
+- This also applies for when actually pushing these values, one push for the offset and one push for the color.
+- Finally learnt about type aliases, so made some changes that should hopefully lead to less errors in the future.
+- Also removed the need for the bytemuck crate as it seemed unnecessary for what I was using it for, wrote some functions to get the specific push constants in slice form.
