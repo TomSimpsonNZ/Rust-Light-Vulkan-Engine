@@ -14,7 +14,7 @@ pub struct PipelineConfigInfo {
     // color_blend_attachment: vk::PipelineColorBlendAttachmentState,
     // color_blend_info: vk::PipelineColorBlendStateCreateInfo,
     depth_stencil_info: vk::PipelineDepthStencilStateCreateInfo,
-    dynamic_state_enables: Vec<vk::DynamicState>,
+    _dynamic_state_enables: Vec<vk::DynamicState>,
     dynamic_state_info: vk::PipelineDynamicStateCreateInfo,
     subpass: u32,
 }
@@ -143,7 +143,7 @@ impl LvePipeline {
             // color_blend_attachment,
             // color_blend_info,
             depth_stencil_info,
-            dynamic_state_enables,
+            _dynamic_state_enables: dynamic_state_enables,
             dynamic_state_info,
             subpass: 0,
         }

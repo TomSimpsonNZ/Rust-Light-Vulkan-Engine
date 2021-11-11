@@ -87,13 +87,13 @@ impl QueueFamilyIndices {
 }
 
 pub struct LveDevice {
-    entry: Entry,
+    _entry: Entry,
     pub instance: Instance,
     debug_messenger: Option<(DebugUtils, vk::DebugUtilsMessengerEXT)>,
     surface: Surface,
     pub surface_khr: vk::SurfaceKHR,
     physical_device: vk::PhysicalDevice,
-    properties: vk::PhysicalDeviceProperties,
+    _properties: vk::PhysicalDeviceProperties,
     pub device: Device,
     pub command_pool: vk::CommandPool,
     pub graphics_queue: vk::Queue,
@@ -102,7 +102,7 @@ pub struct LveDevice {
 
 impl LveDevice {
     /// Will create a new instance of a vulkan device and all of it's associated functions
-    pub fn new(window: &Window, width: u32, height: u32) -> Self {
+    pub fn new(window: &Window) -> Self {
         let entry = unsafe {
             Entry::new()
                 .map_err(|e| log::error!("Failed to create entry: {}", e))
@@ -119,13 +119,13 @@ impl LveDevice {
             Self::create_command_pool(&instance, &surface, surface_khr, physical_device, &device);
 
         Self {
-            entry,
+            _entry: entry,
             instance,
             debug_messenger,
             surface,
             surface_khr,
             physical_device,
-            properties,
+            _properties: properties,
             device,
             graphics_queue,
             present_queue,

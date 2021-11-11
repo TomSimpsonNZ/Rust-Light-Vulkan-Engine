@@ -1,6 +1,4 @@
 use super::lve_device::*;
-use super::Color;
-use super::Pos;
 
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
@@ -8,6 +6,9 @@ use ash::{vk, Device};
 use std::mem::size_of;
 
 extern crate nalgebra as na;
+
+type Pos = na::Vector2<f32>;
+type Color = na::Vector3<f32>;
 
 #[derive(Clone, Copy)]
 pub struct Vertex {

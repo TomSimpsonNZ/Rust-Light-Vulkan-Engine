@@ -1,9 +1,11 @@
 mod lve_device;
+mod lve_game_object;
 mod lve_model;
 mod lve_pipeline;
 mod lve_swapchain;
 
 use lve_device::*;
+use lve_game_object::*;
 use lve_model::*;
 use lve_pipeline::*;
 use lve_swapchain::*;
@@ -17,12 +19,13 @@ use winit::{
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
+use std::f32::consts::PI;
+
 extern crate nalgebra as na;
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 const NAME: &str = "Hello Vulkan!";
-
 
 #[repr(align(16))]
 #[derive(Debug, Clone, Copy)]
@@ -47,7 +50,7 @@ impl SimplePushConstantData {
         std::slice::from_raw_parts(start_ptr, size_in_u8)
     }
 
-    /// This is for debugging, will print out the push constants as they are 
+    /// This is for debugging, will print out the push constants as they are
     /// represented in memory. Will be useful for spotting alignment issues
     pub unsafe fn _print_buffer(&self) {
         let size_in_bytes = std::mem::size_of::<Self>();
@@ -65,7 +68,7 @@ pub struct VulkanApp {
     lve_pipeline: LvePipeline,
     pipeline_layout: vk::PipelineLayout, // I think this should be a part of the pipeline module
     command_buffers: Vec<vk::CommandBuffer>,
-    lve_model: LveModel,
+    game_objects: Vec<LveGameObject>,
 }
 
 impl VulkanApp {
@@ -73,12 +76,12 @@ impl VulkanApp {
         // Create the event loop and application window
         let (event_loop, window) = Self::new_window(WIDTH, HEIGHT, NAME);
 
-        let lve_device = LveDevice::new(&window, WIDTH, HEIGHT);
+        let lve_device = LveDevice::new(&window);
 
         let window_extent = Self::get_window_extent(&window);
         let lve_swapchain = LveSwapchain::new(&lve_device, window_extent, None);
 
-        let lve_model = Self::load_models(&lve_device);
+        let game_objects = vec![Self::load_game_object(&lve_device)];
 
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
 
@@ -99,7 +102,7 @@ impl VulkanApp {
                 lve_pipeline,
                 pipeline_layout,
                 command_buffers,
-                lve_model,
+                game_objects,
             },
             event_loop,
         )
@@ -312,16 +315,13 @@ impl VulkanApp {
     }
 
     fn record_command_buffer(&mut self, image_index: usize) {
-        static mut FRAME: u32 = 0;
-        unsafe { FRAME = (FRAME + 1) % 200 };
-
         let begin_info = vk::CommandBufferBeginInfo::builder().build();
 
         let command_buffer = self.command_buffers[image_index];
-        let device = &self.lve_device.device;
 
         unsafe {
-            device
+            self.lve_device
+                .device
                 .begin_command_buffer(command_buffer, &begin_info)
                 .map_err(|e| log::error!("Unable to begin command buffer: {}", e))
                 .unwrap()
@@ -355,7 +355,7 @@ impl VulkanApp {
             .build();
 
         unsafe {
-            device.cmd_begin_render_pass(
+            self.lve_device.device.cmd_begin_render_pass(
                 command_buffer,
                 &render_pass_info,
                 vk::SubpassContents::INLINE,
@@ -375,24 +375,77 @@ impl VulkanApp {
                 extent: self.lve_swapchain.swapchain_extent,
             };
 
-            device.cmd_set_viewport(command_buffer, 0, &[viewport]);
-            device.cmd_set_scissor(command_buffer, 0, &[scissor]);
+            self.lve_device
+                .device
+                .cmd_set_viewport(command_buffer, 0, &[viewport]);
+            self.lve_device
+                .device
+                .cmd_set_scissor(command_buffer, 0, &[scissor]);
 
-            self.lve_pipeline.bind(device, command_buffer);
+            self.lve_pipeline
+                .bind(&self.lve_device.device, command_buffer);
 
-            self.lve_model.bind(device, command_buffer);
+            for _ in 0..4 {
+                self.render_game_objects(command_buffer);
+            }
 
-            for i in 0..4 {
-                let push = SimplePushConstantData {
-                    transform: Align16(na::matrix![1.0, 0.0; 0.0, 1.0]),
-                    offset: Align16(na::vector![-0.5 + (FRAME as f32) * 0.01, -0.4 + (i as f32) * 0.25]),
-                    // byte_buff: [0.0, 0.0],
-                    color: Align16(na::vector![0.0, 0.0, 0.2 + 0.2 * (i as f32)]),
-                };
+            self.lve_device.device.cmd_end_render_pass(command_buffer);
 
+            self.lve_device
+                .device
+                .end_command_buffer(command_buffer)
+                .map_err(|e| log::error!("Unable to end command buffer: {}", e))
+                .unwrap()
+        };
+    }
+
+    fn load_game_object(lve_device: &LveDevice) -> LveGameObject {
+        let vertices = vec![
+            Vertex {
+                position: na::vector![0.0, -0.5],
+                color: na::vector![1.0, 0.0, 0.0],
+            },
+            Vertex {
+                position: na::vector![0.5, 0.5],
+                color: na::vector![0.0, 1.0, 0.0],
+            },
+            Vertex {
+                position: na::vector![-0.5, 0.5],
+                color: na::vector![0.0, 0.0, 1.0],
+            },
+        ];
+
+        let model = LveModel::new(lve_device, &vertices);
+        let color = na::vector![0.1, 0.8, 0.1];
+        let transform = Transform2DComponent {
+            translation: na::vector![0.2, 0.0],
+            scale: na::vector![2.0, 0.5],
+            rotation: 0.5 * PI,
+        };
+
+        LveGameObject::new(model, color, transform)
+    }
+
+    fn render_game_objects(&mut self, command_buffer: vk::CommandBuffer) {
+        unsafe {
+            self.lve_pipeline
+                .bind(&self.lve_device.device, command_buffer)
+        };
+
+        for game_obj in self.game_objects.iter_mut() {
+            game_obj.transform.rotation = game_obj.transform.rotation + 0.001 % 2.0 * PI;
+
+            let push = SimplePushConstantData {
+                transform: Align16(game_obj.transform.mat2()),
+                offset: Align16(game_obj.transform.translation),
+                // byte_buff: [0.0, 0.0],
+                color: Align16(game_obj.color),
+            };
+
+            unsafe {
                 let push_ptr = push.as_bytes();
 
-                device.cmd_push_constants(
+                self.lve_device.device.cmd_push_constants(
                     command_buffer,
                     self.pipeline_layout,
                     vk::ShaderStageFlags::VERTEX,
@@ -400,35 +453,10 @@ impl VulkanApp {
                     push_ptr,
                 );
 
-                self.lve_model.draw(device, command_buffer);
+                game_obj.model.bind(&self.lve_device.device, command_buffer);
+                game_obj.model.draw(&self.lve_device.device, command_buffer);
             }
-
-            device.cmd_end_render_pass(command_buffer);
-
-            device
-                .end_command_buffer(command_buffer)
-                .map_err(|e| log::error!("Unable to end command buffer: {}", e))
-                .unwrap()
-        };
-    }
-
-    fn load_models(lve_device: &LveDevice) -> LveModel {
-        let vertices = vec![
-            Vertex {
-                position: Align16(na::vector![0.0, -0.5]),
-                color: Align16(na::vector![1.0, 0.0, 0.0]),
-            },
-            Vertex {
-                position: Align16(na::vector![0.5, 0.5]),
-                color: Align16(na::vector![0.0, 1.0, 0.0]),
-            },
-            Vertex {
-                position: Align16(na::vector![-0.5, 0.5]),
-                color: Align16(na::vector![0.0, 0.0, 1.0]),
-            },
-        ];
-
-        LveModel::new(lve_device, &vertices)
+        }
     }
 }
 
@@ -442,8 +470,10 @@ impl Drop for VulkanApp {
                 .device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
 
-            log::debug!("Destroying vertex buffers");
-            self.lve_model.destroy(&self.lve_device.device);
+            log::debug!("Destroying game objects");
+            for game_obj in self.game_objects.iter_mut() {
+                game_obj.destroy(&self.lve_device.device);
+            }
 
             log::debug!("Destroying swapchain");
             self.lve_swapchain.destroy(&self.lve_device.device);

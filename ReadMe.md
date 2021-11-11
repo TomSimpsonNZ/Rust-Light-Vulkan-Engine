@@ -123,3 +123,8 @@ vertex and the fragment shaders be split into separate structs.
 - After moving onto the next tutorial, it became apparent that the previous fix was not going to work. It was time to figure out how to properly align the fields of a struct. Since using `#[repr(align(16))]` on a struct 
 only aligns the whole struct and not it's fields, I had to get a bit creative. By defining the wrapper struct `Align16<t>(pub T)`, each of the fields of the `SimplePushConstantData` struct can now be aligned.
 - Push constants were also made to only affect the vertex shader, as ash was making it hard to send push constants to both the vertex and fragment shaders.
+
+# 10: 2D Transformations ([link](https://www.youtube.com/watch?v=gxUcgc88tD4&ab_channel=BrendanGalea))
+- Had to do a little bit of refactoring to allow the rotation to be mutable in the `render_game_objects()` function.
+- Also decided to make the type declaration for `Pos` and `Color` and so on module specific to avoid alignment weirdness, but this could become confusing.
+- Will fork the cool animation.

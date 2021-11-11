@@ -9,7 +9,7 @@ const MAX_FRAMES_IN_FLIGHT: usize = 2;
 pub struct LveSwapchain {
     swapchain: Swapchain,
     pub swapchain_khr: vk::SwapchainKHR,
-    swapchain_image_format: vk::Format,
+    _swapchain_image_format: vk::Format,
     pub swapchain_extent: vk::Extent2D,
     swapchain_images: Vec<vk::Image>,
     swapchain_image_views: Vec<vk::ImageView>,
@@ -68,7 +68,7 @@ impl LveSwapchain {
         Self {
             swapchain,
             swapchain_khr,
-            swapchain_image_format,
+            _swapchain_image_format: swapchain_image_format,
             swapchain_extent,
             swapchain_images,
             swapchain_image_views,
