@@ -118,3 +118,8 @@ vertex and the fragment shaders be split into separate structs.
 - This also applies for when actually pushing these values, one push for the offset and one push for the color.
 - Finally learnt about type aliases, so made some changes that should hopefully lead to less errors in the future.
 - Also removed the need for the bytemuck crate as it seemed unnecessary for what I was using it for, wrote some functions to get the specific push constants in slice form.
+
+## Push Constant Fix (for real this time):
+- After moving onto the next tutorial, it became apparent that the previous fix was not going to work. It was time to figure out how to properly align the fields of a struct. Since using `#[repr(align(16))]` on a struct 
+only aligns the whole struct and not it's fields, I had to get a bit creative. By defining the wrapper struct `Align16<t>(pub T)`, each of the fields of the `SimplePushConstantData` struct can now be aligned.
+- Push constants were also made to only affect the vertex shader, as ash was making it hard to send push constants to both the vertex and fragment shaders.

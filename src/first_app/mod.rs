@@ -8,7 +8,6 @@ use lve_model::*;
 use lve_pipeline::*;
 use lve_swapchain::*;
 
-use na::Vector2;
 use winit::{
     dpi::LogicalSize,
     event_loop::EventLoop,
@@ -18,39 +17,44 @@ use winit::{
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
-use std::mem::size_of;
-use std::slice::from_raw_parts;
-
 extern crate nalgebra as na;
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 const NAME: &str = "Hello Vulkan!";
 
-const ALIGN: u32 = 16;
 
-type Pos = na::Vector2<f32>;
-type Color = na::Vector3<f32>;
+#[repr(align(16))]
+#[derive(Debug, Clone, Copy)]
+pub struct Align16<T>(pub T);
 
-#[derive(Clone, Copy)]
+type Pos = Align16<na::Vector2<f32>>;
+type Color = Align16<na::Vector3<f32>>;
+type Transform = Align16<na::Matrix2<f32>>;
+
+#[derive(Debug)]
 pub struct SimplePushConstantData {
+    transform: Transform,
     offset: Pos,
     color: Color,
 }
 
 impl SimplePushConstantData {
-    pub unsafe fn offset_as_bytes(&self) -> &[u8] {
-        let size_in_bytes = size_of::<Pos>();
-        let size_in_u8 = size_in_bytes / size_of::<u8>();
-        let start_ptr = self.offset.as_ptr() as *const u8;
-        from_raw_parts(start_ptr, size_in_u8)
+    pub unsafe fn as_bytes(&self) -> &[u8] {
+        let size_in_bytes = std::mem::size_of::<Self>();
+        let size_in_u8 = size_in_bytes / std::mem::size_of::<u8>();
+        let start_ptr = self as *const Self as *const u8;
+        std::slice::from_raw_parts(start_ptr, size_in_u8)
     }
 
-    pub unsafe fn color_as_bytes(&self) -> &[u8] {
-        let size_in_bytes = size_of::<Color>();
-        let size_in_u8 = size_in_bytes / size_of::<u8>();
-        let start_ptr = self.color.as_ptr() as *const u8;
-        from_raw_parts(start_ptr, size_in_u8)
+    /// This is for debugging, will print out the push constants as they are 
+    /// represented in memory. Will be useful for spotting alignment issues
+    pub unsafe fn _print_buffer(&self) {
+        let size_in_bytes = std::mem::size_of::<Self>();
+        let size_in_u8 = size_in_bytes / std::mem::size_of::<f32>();
+        let start_ptr = self as *const Self as *const f32;
+        let buffer = std::slice::from_raw_parts(start_ptr, size_in_u8);
+        log::debug!("{:?}", buffer);
     }
 }
 
@@ -66,11 +70,6 @@ pub struct VulkanApp {
 
 impl VulkanApp {
     pub fn new() -> (Self, EventLoop<()>) {
-        println!(
-            "Size of SimplePushConstantData: {}",
-            size_of::<SimplePushConstantData>()
-        );
-
         // Create the event loop and application window
         let (event_loop, window) = Self::new_window(WIDTH, HEIGHT, NAME);
 
@@ -272,21 +271,15 @@ impl VulkanApp {
     }
 
     fn create_pipeline_layout(device: &Device) -> vk::PipelineLayout {
-        let push_offset_range = vk::PushConstantRange::builder()
+        let push_constant_range = vk::PushConstantRange::builder()
             .stage_flags(vk::ShaderStageFlags::VERTEX)
             .offset(0)
-            .size(size_of::<Pos>() as u32)
-            .build();
-
-        let push_color_range = vk::PushConstantRange::builder()
-            .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-            .offset(ALIGN)
-            .size(size_of::<Color>() as u32)
+            .size(std::mem::size_of::<SimplePushConstantData>() as u32)
             .build();
 
         let pipeline_layout_info = vk::PipelineLayoutCreateInfo::builder()
             // .set_layouts(&[vk::DescriptorSetLayout::null()])
-            .push_constant_ranges(&[push_offset_range, push_color_range])
+            .push_constant_ranges(&[push_constant_range])
             .build();
 
         unsafe {
@@ -391,27 +384,20 @@ impl VulkanApp {
 
             for i in 0..4 {
                 let push = SimplePushConstantData {
-                    offset: na::vector![-0.5 + FRAME as f32 * 0.01, -0.4 + (i as f32) * 0.25],
-                    color: na::vector![0.0, 0.0, 0.2 + 0.2 * (i as f32)],
+                    transform: Align16(na::matrix![1.0, 0.0; 0.0, 1.0]),
+                    offset: Align16(na::vector![-0.5 + (FRAME as f32) * 0.01, -0.4 + (i as f32) * 0.25]),
+                    // byte_buff: [0.0, 0.0],
+                    color: Align16(na::vector![0.0, 0.0, 0.2 + 0.2 * (i as f32)]),
                 };
 
-                let push_offset = push.offset_as_bytes();
-                let push_color = push.color_as_bytes();
+                let push_ptr = push.as_bytes();
 
                 device.cmd_push_constants(
                     command_buffer,
                     self.pipeline_layout,
                     vk::ShaderStageFlags::VERTEX,
                     0,
-                    push_offset,
-                );
-
-                device.cmd_push_constants(
-                    command_buffer,
-                    self.pipeline_layout,
-                    vk::ShaderStageFlags::FRAGMENT,
-                    ALIGN,
-                    push_color,
+                    push_ptr,
                 );
 
                 self.lve_model.draw(device, command_buffer);
@@ -429,16 +415,16 @@ impl VulkanApp {
     fn load_models(lve_device: &LveDevice) -> LveModel {
         let vertices = vec![
             Vertex {
-                position: na::vector![0.0, -0.5],
-                color: na::vector![1.0, 0.0, 0.0],
+                position: Align16(na::vector![0.0, -0.5]),
+                color: Align16(na::vector![1.0, 0.0, 0.0]),
             },
             Vertex {
-                position: na::vector![0.5, 0.5],
-                color: na::vector![0.0, 1.0, 0.0],
+                position: Align16(na::vector![0.5, 0.5]),
+                color: Align16(na::vector![0.0, 1.0, 0.0]),
             },
             Vertex {
-                position: na::vector![-0.5, 0.5],
-                color: na::vector![0.0, 0.0, 1.0],
+                position: Align16(na::vector![-0.5, 0.5]),
+                color: Align16(na::vector![0.0, 0.0, 1.0]),
             },
         ];
 
