@@ -40,10 +40,10 @@ fn main() {
             } => {
                 log::debug!("Resizing window");
                 log::info!("New window size: {}x{}", width, height);
-                app.recreate_swapchain();
+                app.resize();
             }
             Event::MainEventsCleared => {
-                app.draw_frame();
+                app.run();
             }
             _ => (),
         }

@@ -134,6 +134,7 @@ impl LveDevice {
     }
 
     pub unsafe fn destroy(&mut self) {
+        log::debug!("Destroying device");
         // log::debug!("Destroying command pool");
         self.device.destroy_command_pool(self.command_pool, None);
 

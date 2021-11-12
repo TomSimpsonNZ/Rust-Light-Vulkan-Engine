@@ -128,3 +128,7 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 - Had to do a little bit of refactoring to allow the rotation to be mutable in the `render_game_objects()` function.
 - Also decided to make the type declaration for `Pos` and `Color` and so on module specific to avoid alignment weirdness, but this could become confusing.
 - Will fork the cool animation.
+
+# 11: Renderer & Systems ([link](https://www.youtube.com/watch?v=uGRSTRGlZVs&t=1257s&ab_channel=BrendanGalea))
+- No big changes of note.
+- Will fork the gravity simulation.

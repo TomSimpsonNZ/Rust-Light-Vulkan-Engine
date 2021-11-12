@@ -4,12 +4,13 @@ use ash::extensions::khr::Swapchain;
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
-const MAX_FRAMES_IN_FLIGHT: usize = 2;
+pub const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
 pub struct LveSwapchain {
     swapchain: Swapchain,
     pub swapchain_khr: vk::SwapchainKHR,
-    _swapchain_image_format: vk::Format,
+    swapchain_image_format: vk::Format,
+    swapchain_depth_format: vk::Format,
     pub swapchain_extent: vk::Extent2D,
     swapchain_images: Vec<vk::Image>,
     swapchain_image_views: Vec<vk::ImageView>,
@@ -47,7 +48,7 @@ impl LveSwapchain {
 
         let render_pass = Self::create_render_pass(&lve_device, swapchain_image_format);
 
-        let (depth_images, depth_image_memories, depth_image_views) =
+        let (depth_images, depth_image_memories, depth_image_views, swapchain_depth_format) =
             Self::create_depth_resources(lve_device, &swapchain_images, swapchain_extent);
 
         let swapchain_framebuffers = Self::create_framebuffers(
@@ -68,7 +69,8 @@ impl LveSwapchain {
         Self {
             swapchain,
             swapchain_khr,
-            _swapchain_image_format: swapchain_image_format,
+            swapchain_image_format,
+            swapchain_depth_format,
             swapchain_extent,
             swapchain_images,
             swapchain_image_views,
@@ -86,6 +88,7 @@ impl LveSwapchain {
     }
 
     pub unsafe fn destroy(&mut self, device: &Device) {
+        log::debug!("Destroying swapchain");
         self.swapchain_image_views
             .iter()
             .for_each(|iv| device.destroy_image_view(*iv, None));
@@ -121,6 +124,16 @@ impl LveSwapchain {
         self.in_flight_fences
             .iter()
             .for_each(|f| device.destroy_fence(*f, None));
+    }
+
+    pub fn compare_swap_formats(&self, other_swapchain: &Self) -> Result<(), ()> {
+        if other_swapchain.swapchain_depth_format == self.swapchain_depth_format
+            && other_swapchain.swapchain_image_format == self.swapchain_image_format
+        {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     pub fn image_count(&self) -> usize {
@@ -355,7 +368,12 @@ impl LveSwapchain {
         lve_device: &LveDevice,
         swapchain_images: &Vec<vk::Image>,
         swapchain_extent: vk::Extent2D,
-    ) -> (Vec<vk::Image>, Vec<vk::DeviceMemory>, Vec<vk::ImageView>) {
+    ) -> (
+        Vec<vk::Image>,
+        Vec<vk::DeviceMemory>,
+        Vec<vk::ImageView>,
+        vk::Format,
+    ) {
         let depth_format = Self::find_depth_format(lve_device);
 
         let (images, image_memories): (Vec<vk::Image>, Vec<vk::DeviceMemory>) = swapchain_images
@@ -412,7 +430,7 @@ impl LveSwapchain {
             })
             .collect::<Vec<_>>();
 
-        (images, image_memories, image_views)
+        (images, image_memories, image_views, depth_format)
     }
 
     fn create_render_pass(
