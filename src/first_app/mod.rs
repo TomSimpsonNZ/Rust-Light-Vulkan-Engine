@@ -81,7 +81,7 @@ impl VulkanApp {
         let window_extent = Self::get_window_extent(&window);
         let lve_swapchain = LveSwapchain::new(&lve_device, window_extent, None);
 
-        let game_objects = vec![Self::load_game_object(&lve_device)];
+        let game_objects = Self::load_game_object(&lve_device);
 
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
 
@@ -399,7 +399,7 @@ impl VulkanApp {
         };
     }
 
-    fn load_game_object(lve_device: &LveDevice) -> LveGameObject {
+    fn load_game_object(lve_device: &LveDevice) -> Vec<LveGameObject> {
         let vertices = vec![
             Vertex {
                 position: na::vector![0.0, -0.5],
@@ -415,30 +415,47 @@ impl VulkanApp {
             },
         ];
 
-        let model = LveModel::new(lve_device, &vertices);
-        let color = na::vector![0.1, 0.8, 0.1];
-        let transform = Transform2DComponent {
-            translation: na::vector![0.2, 0.0],
-            scale: na::vector![2.0, 0.5],
-            rotation: 0.5 * PI,
-        };
+        let colors = vec![
+            na::vector![1.0, 0.49, 0.5],
+            na::vector![1.0, 0.81, 0.5],
+            na::vector![1.0, 1.0, 0.5],
+            na::vector![0.5, 0.49, 0.64],
+            na::vector![0.5, 0.81, 1.0]
+        ];
 
-        LveGameObject::new(model, color, transform)
+        let mut game_objects = Vec::new();
+
+        for i in 0..40 {
+            let model = LveModel::new(lve_device, &vertices);
+            let color = colors[i % colors.len()];
+            let transform = Transform2DComponent {
+                translation: na::vector![0.0, 0.0],
+                scale: na::vector![0.5 + (i as f32) * 0.025, 0.5 + (i as f32) * 0.025],
+                rotation: (i as f32) * 0.025 * PI,
+            };
+
+            game_objects.push(LveGameObject::new(model, color, transform));
+        }
+
+        game_objects
     }
 
     fn render_game_objects(&mut self, command_buffer: vk::CommandBuffer) {
+
         unsafe {
             self.lve_pipeline
                 .bind(&self.lve_device.device, command_buffer)
         };
 
+        let mut i = 0;
+
         for game_obj in self.game_objects.iter_mut() {
-            game_obj.transform.rotation = game_obj.transform.rotation + 0.001 % 2.0 * PI;
+            game_obj.transform.rotation = (game_obj.transform.rotation + 0.0001 * (i as f32)) % (2.0 * PI);
+            i += 1;
 
             let push = SimplePushConstantData {
                 transform: Align16(game_obj.transform.mat2()),
                 offset: Align16(game_obj.transform.translation),
-                // byte_buff: [0.0, 0.0],
                 color: Align16(game_obj.color),
             };
 
