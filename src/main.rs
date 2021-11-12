@@ -13,7 +13,7 @@ fn main() {
     env_logger::init();
 
     // Create the application and events loop
-    let (mut vulkan_app, event_loop) = VulkanApp::new();
+    let (mut vulkan_app, event_loop) = GravityVecFieldApp::new();
 
     log::debug!("Running Application");
 

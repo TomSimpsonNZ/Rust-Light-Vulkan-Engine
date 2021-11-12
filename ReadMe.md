@@ -133,8 +133,8 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 - No big changes of note.
 - Will fork the gravity simulation.
 
-# Refactor
-- In making the little gravity simulation after the last tutorial, it became apparent that the way the code was set up was not going to work. In the current state, each game object would need its own version of the model, even if it was the exact same model that another object was using. Since we are not modifying the models in the code, this is just inefficient and it takes a while to load and destroy all the models.
-    - In the previous version of the code, having the game object contain a reference to the model was (I think, could be wrong) impossible as it was ambiguous when the model should be destroyed.
-- To solve this issue, the `LveModel` and the `LveDevice` structs were made to return smart pointers from their constructors. This allows for many different game objects to all access the same model and then release the model (and it vertex buffers) from memory when no game object is using it anymore. To do this, a smart pointer to the `LveDevice` was also needed so that the model could de allocate when it was dropped. While I was at it, I implemented the drop trait for the rest of the modules in the engine, allowing for the same behaviour.
-- I will merge these changes with the Gravity sim branch 
+# Gravity Vec Field App
+- Rust does not allow for two mutable references to the same thing to exist at the same time, which makes updating the particles hard. I found a workaround.
+- Due to the way models are implemented, they cannot have the copy trait as Vulkan has a hard time destroying the vertex buffers. This means that a new model 
+has to be loaded for every game object, even though the model is the same for all of them. This is very inefficient, but I cannot think of a simple solution at
+the moment

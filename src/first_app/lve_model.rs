@@ -46,6 +46,7 @@ impl Vertex {
     }
 }
 
+#[derive(PartialEq)]
 pub struct LveModel {
     lve_device: Rc<LveDevice>,
     vertex_buffer: vk::Buffer,
