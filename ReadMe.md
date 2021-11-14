@@ -138,3 +138,6 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
     - In the previous version of the code, having the game object contain a reference to the model was (I think, could be wrong) impossible as it was ambiguous when the model should be destroyed.
 - To solve this issue, the `LveModel` and the `LveDevice` structs were made to return smart pointers from their constructors. This allows for many different game objects to all access the same model and then release the model (and it vertex buffers) from memory when no game object is using it anymore. To do this, a smart pointer to the `LveDevice` was also needed so that the model could de allocate when it was dropped. While I was at it, I implemented the drop trait for the rest of the modules in the engine, allowing for the same behaviour.
 - I will merge these changes with the Gravity sim branch 
+
+## Small edit
+- Removed the ID field from the model, the whole point of the refactor was that there would only be one version of each model :)

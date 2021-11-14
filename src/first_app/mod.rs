@@ -118,7 +118,7 @@ impl VulkanApp {
             },
         ];
 
-        let model = LveModel::new(lve_device, &vertices, String::from_str("Triangle").unwrap(), 0);
+        let model = LveModel::new(lve_device, &vertices, String::from_str("Triangle").unwrap());
         let color = na::vector![0.1, 0.8, 0.1];
         let transform = Transform2DComponent {
             translation: na::vector![0.2, 0.0],
