@@ -1,6 +1,6 @@
 use super::lve_model::*;
 
-use ash::Device;
+use std::rc::Rc;
 
 extern crate nalgebra as na;
 
@@ -27,14 +27,14 @@ impl Transform2DComponent {
 }
 
 pub struct LveGameObject {
-    pub model: LveModel,
+    pub model: Rc<LveModel>,
     pub color: na::Vector3<f32>,
     pub transform: Transform2DComponent,
 }
 
 impl LveGameObject {
     pub fn new(
-        model: LveModel,
+        model: Rc<LveModel>,
         color: na::Vector3<f32>,
         transform: Transform2DComponent,
     ) -> Self {
@@ -43,9 +43,5 @@ impl LveGameObject {
             color,
             transform,
         }
-    }
-
-    pub unsafe fn destroy(&mut self, device: &Device) {
-        self.model.destroy(device);
     }
 }

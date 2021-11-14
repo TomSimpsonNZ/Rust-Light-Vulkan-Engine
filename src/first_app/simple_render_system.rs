@@ -6,6 +6,7 @@ use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
 use std::f32::consts::PI;
+use std::rc::Rc;
 
 extern crate nalgebra as na;
 
@@ -44,31 +45,26 @@ impl SimplePushConstantData {
 }
 
 pub struct SimpleRenderSystem {
+    lve_device: Rc<LveDevice>,
     lve_pipeline: LvePipeline,
     pipeline_layout: vk::PipelineLayout, // I think this should be a part of the pipeline module
 }
 
 impl SimpleRenderSystem {
-    pub fn new(lve_device: &LveDevice, render_pass: &vk::RenderPass) -> Self {
+    pub fn new(lve_device: Rc<LveDevice>, render_pass: &vk::RenderPass) -> Self {
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
 
-        let lve_pipeline = Self::create_pipeline(&lve_device.device, render_pass, &pipeline_layout);
+        let lve_pipeline = Self::create_pipeline(Rc::clone(&lve_device), render_pass, &pipeline_layout);
 
         Self {
+            lve_device,
             lve_pipeline,
             pipeline_layout,
         }
     }
 
-    pub unsafe fn destroy(&mut self, device: &Device) {
-        log::debug!("Destroying render system");
-        device.destroy_pipeline_layout(self.pipeline_layout, None);
-
-        self.lve_pipeline.destroy(device);
-    }
-
     fn create_pipeline(
-        device: &Device,
+        lve_device: Rc<LveDevice>,
         render_pass: &vk::RenderPass,
         pipeline_layout: &vk::PipelineLayout,
     ) -> LvePipeline {
@@ -80,7 +76,7 @@ impl SimpleRenderSystem {
         let pipeline_config = LvePipeline::default_pipline_config_info();
 
         LvePipeline::new(
-            device,
+            lve_device,
             "shaders/simple_shader.vert.spv",
             "shaders/simple_shader.frag.spv",
             pipeline_config,
@@ -111,11 +107,10 @@ impl SimpleRenderSystem {
 
     pub fn render_game_objects(
         &mut self,
-        device: &Device,
         command_buffer: vk::CommandBuffer,
         game_objects: &mut Vec<LveGameObject>,
     ) {
-        unsafe { self.lve_pipeline.bind(device, command_buffer) };
+        unsafe { self.lve_pipeline.bind(&self.lve_device.device, command_buffer) };
 
         for game_obj in game_objects.iter_mut() {
             game_obj.transform.rotation = game_obj.transform.rotation + 0.01 % 2.0 * PI;
@@ -129,7 +124,7 @@ impl SimpleRenderSystem {
             unsafe {
                 let push_ptr = push.as_bytes();
 
-                device.cmd_push_constants(
+                self.lve_device.device.cmd_push_constants(
                     command_buffer,
                     self.pipeline_layout,
                     vk::ShaderStageFlags::VERTEX,
@@ -137,9 +132,19 @@ impl SimpleRenderSystem {
                     push_ptr,
                 );
 
-                game_obj.model.bind(device, command_buffer);
-                game_obj.model.draw(device, command_buffer);
+                game_obj.model.bind(&self.lve_device.device, command_buffer);
+                game_obj.model.draw(&self.lve_device.device, command_buffer);
             }
+        }
+    }
+}
+
+impl Drop for SimpleRenderSystem {
+    fn drop(&mut self) {
+        log::debug!("Dropping SimpleRenderSystem");
+
+        unsafe {
+            self.lve_device.device.destroy_pipeline_layout(self.pipeline_layout, None);
         }
     }
 }

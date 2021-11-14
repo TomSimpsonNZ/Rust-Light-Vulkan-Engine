@@ -5,8 +5,10 @@ use winit::window::Window;
 
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
+use std::rc::Rc;
 
 pub struct LveRenderer {
+    lve_device: Rc<LveDevice>,
     pub lve_swapchain: LveSwapchain,
     command_buffers: Vec<vk::CommandBuffer>,
     current_image_index: usize,
@@ -15,27 +17,22 @@ pub struct LveRenderer {
 }
 
 impl LveRenderer {
-    pub fn new(lve_device: &LveDevice, window: &Window) -> Self {
+    pub fn new(lve_device: Rc<LveDevice>, window: &Window) -> Self {
         let window_extent = Self::get_window_extent(window);
 
-        let lve_swapchain = LveSwapchain::new(&lve_device, window_extent, None);
+        let lve_swapchain = LveSwapchain::new(Rc::clone(&lve_device), window_extent, None);
 
         let command_buffers =
             Self::create_command_buffers(&lve_device.device, lve_device.command_pool);
 
         Self {
+            lve_device,
             lve_swapchain,
             command_buffers,
             current_image_index: 0,
             current_frame_index: 0,
             is_frame_started: false,
         }
-    }
-
-    pub unsafe fn destroy(&mut self, device: &Device, command_pool: vk::CommandPool) {
-        log::debug!("Destroying renderer");
-        self.free_command_buffers(device, command_pool);
-        self.lve_swapchain.destroy(device);
     }
 
     pub fn get_frame_index(&self) -> usize {
@@ -58,11 +55,7 @@ impl LveRenderer {
         self.lve_swapchain.render_pass
     }
 
-    pub fn begin_frame(
-        &mut self,
-        lve_device: &LveDevice,
-        window: &Window,
-    ) -> Option<vk::CommandBuffer> {
+    pub fn begin_frame(&mut self, window: &Window) -> Option<vk::CommandBuffer> {
         assert!(
             !self.is_frame_started,
             "Can't call begin_frame while already in progress"
@@ -74,12 +67,15 @@ impl LveRenderer {
             return None; // Don't do anything if the window is minimised
         }
 
-        let result = unsafe { self.lve_swapchain.acquire_next_image(&lve_device.device) };
+        let result = unsafe {
+            self.lve_swapchain
+                .acquire_next_image(&self.lve_device.device)
+        };
 
         match result {
             Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => {
                 log::error!("Out of date KHR!");
-                self.recreate_swapchain(lve_device, window);
+                self.recreate_swapchain(window);
                 return None;
             }
             Err(_) => {
@@ -90,7 +86,7 @@ impl LveRenderer {
                 match is_subopt {
                     true => {
                         log::warn!("Swapchain is suboptimal for surface");
-                        self.recreate_swapchain(lve_device, window);
+                        self.recreate_swapchain(window);
                     }
                     false => {}
                 }
@@ -105,7 +101,7 @@ impl LveRenderer {
         let begin_info = vk::CommandBufferBeginInfo::builder().build();
 
         unsafe {
-            lve_device
+            self.lve_device
                 .device
                 .begin_command_buffer(command_buffer, &begin_info)
                 .map_err(|e| log::error!("Unable to begin command buffer: {}", e))
@@ -115,7 +111,7 @@ impl LveRenderer {
         return Some(command_buffer);
     }
 
-    pub fn end_frame(&mut self, lve_device: &LveDevice) {
+    pub fn end_frame(&mut self) {
         assert!(
             self.is_frame_started,
             "Can't call end_frame while frame is not in progress"
@@ -123,7 +119,7 @@ impl LveRenderer {
         let command_buffer = self.get_current_command_buffer();
 
         unsafe {
-            lve_device
+            self.lve_device
                 .device
                 .end_command_buffer(command_buffer)
                 .map_err(|e| log::error!("Unable to end command buffer: {}", e))
@@ -133,9 +129,9 @@ impl LveRenderer {
         let _result = self
             .lve_swapchain
             .submit_command_buffers(
-                &lve_device.device,
-                &lve_device.graphics_queue,
-                &lve_device.present_queue,
+                &self.lve_device.device,
+                &self.lve_device.graphics_queue,
+                &self.lve_device.present_queue,
                 &command_buffer,
                 self.current_image_index,
             )
@@ -143,7 +139,7 @@ impl LveRenderer {
             .unwrap();
 
         unsafe {
-            lve_device
+            self.lve_device
                 .device
                 .device_wait_idle()
                 .map_err(|e| log::error!("Cannot wait: {}", e))
@@ -154,7 +150,7 @@ impl LveRenderer {
         self.current_frame_index = (self.current_frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    pub fn begin_swapchain_render_pass(&self, device: &Device, command_buffer: vk::CommandBuffer) {
+    pub fn begin_swapchain_render_pass(&self, command_buffer: vk::CommandBuffer) {
         assert!(
             self.is_frame_started,
             "Can't call begin_swpachain_render_pass while frame is not in progress"
@@ -194,7 +190,7 @@ impl LveRenderer {
             .build();
 
         unsafe {
-            device.cmd_begin_render_pass(
+            self.lve_device.device.cmd_begin_render_pass(
                 command_buffer,
                 &render_pass_info,
                 vk::SubpassContents::INLINE,
@@ -214,12 +210,16 @@ impl LveRenderer {
                 extent: self.lve_swapchain.swapchain_extent,
             };
 
-            device.cmd_set_viewport(command_buffer, 0, &[viewport]);
-            device.cmd_set_scissor(command_buffer, 0, &[scissor]);
+            self.lve_device
+                .device
+                .cmd_set_viewport(command_buffer, 0, &[viewport]);
+            self.lve_device
+                .device
+                .cmd_set_scissor(command_buffer, 0, &[scissor]);
         };
     }
 
-    pub fn end_swapchain_render_pass(&self, device: &Device, command_buffer: vk::CommandBuffer) {
+    pub fn end_swapchain_render_pass(&self, command_buffer: vk::CommandBuffer) {
         assert!(
             self.is_frame_started,
             "Can't call end_swpachain_render_pass while frame is not in progress"
@@ -232,11 +232,11 @@ impl LveRenderer {
         );
 
         unsafe {
-            device.cmd_end_render_pass(command_buffer);
+            self.lve_device.device.cmd_end_render_pass(command_buffer);
         }
     }
 
-    pub fn recreate_swapchain(&mut self, lve_device: &LveDevice, window: &Window) {
+    pub fn recreate_swapchain(&mut self, window: &Window) {
         let extent = Self::get_window_extent(window);
 
         if extent.width == 0 || extent.height == 0 {
@@ -246,7 +246,7 @@ impl LveRenderer {
         log::debug!("Recreating swapchain");
 
         unsafe {
-            lve_device
+            self.lve_device
                 .device
                 .device_wait_idle()
                 .map_err(|e| log::error!("Cannot wait: {}", e))
@@ -254,23 +254,16 @@ impl LveRenderer {
         };
 
         let new_lve_swapchain =
-            LveSwapchain::new(lve_device, extent, Some(self.lve_swapchain.swapchain_khr));
+            LveSwapchain::new(Rc::clone(&self.lve_device), extent, Some(self.lve_swapchain.swapchain_khr));
 
         self.lve_swapchain
             .compare_swap_formats(&new_lve_swapchain)
             .map_err(|e| log::error!("Swapchain image (or depth) format has changed"))
             .unwrap();
 
-        unsafe { self.lve_swapchain.destroy(&lve_device.device) };
-
         self.lve_swapchain = new_lve_swapchain;
 
         // We'll come back to this
-    }
-
-    unsafe fn free_command_buffers(&mut self, device: &Device, command_pool: vk::CommandPool) {
-        device.free_command_buffers(command_pool, &self.command_buffers);
-        self.command_buffers.clear();
     }
 
     fn get_window_extent(window: &Window) -> vk::Extent2D {
@@ -299,5 +292,15 @@ impl LveRenderer {
         };
 
         command_buffers
+    }
+}
+
+impl Drop for LveRenderer {
+    fn drop(&mut self) {
+        log::debug!("Dropping renderer");
+        unsafe {
+            self.lve_device.device.free_command_buffers(self.lve_device.command_pool, &self.command_buffers);
+            self.command_buffers.clear();
+        }
     }
 }

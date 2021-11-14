@@ -1,3 +1,4 @@
+use super::lve_device::LveDevice;
 use super::lve_model::*;
 
 use ash::{vk, Device};
@@ -5,6 +6,7 @@ use ash::{vk, Device};
 use ash::version::DeviceV1_0;
 
 use std::ffi::CString;
+use std::rc::Rc;
 
 pub struct PipelineConfigInfo {
     viewport_info: vk::PipelineViewportStateCreateInfo,
@@ -20,6 +22,7 @@ pub struct PipelineConfigInfo {
 }
 
 pub struct LvePipeline {
+    lve_device: Rc<LveDevice>,
     graphics_pipeline: vk::Pipeline,
     vert_shader_module: vk::ShaderModule,
     frag_shader_module: vk::ShaderModule,
@@ -27,7 +30,7 @@ pub struct LvePipeline {
 
 impl LvePipeline {
     pub fn new(
-        device: &Device,
+        lve_device: Rc<LveDevice>,
         vert_file_path: &str,
         frag_file_path: &str,
         config_info: PipelineConfigInfo,
@@ -36,7 +39,7 @@ impl LvePipeline {
     ) -> Self {
         let (graphics_pipeline, vert_shader_module, frag_shader_module) =
             Self::create_graphics_pipeline(
-                device,
+                &lve_device.device,
                 vert_file_path,
                 frag_file_path,
                 config_info,
@@ -45,16 +48,11 @@ impl LvePipeline {
             );
 
         Self {
+            lve_device,
             graphics_pipeline,
             vert_shader_module,
             frag_shader_module,
         }
-    }
-
-    pub unsafe fn destroy(&mut self, device: &Device) {
-        device.destroy_shader_module(self.vert_shader_module, None);
-        device.destroy_shader_module(self.frag_shader_module, None);
-        device.destroy_pipeline(self.graphics_pipeline, None);
     }
 
     pub unsafe fn bind(&self, device: &Device, command_buffer: vk::CommandBuffer) {
@@ -270,6 +268,18 @@ impl LvePipeline {
                 .create_shader_module(&create_info, None)
                 .map_err(|e| log::error!("Unable to create shader module: {}", e))
                 .unwrap()
+        }
+    }
+}
+
+impl Drop for LvePipeline {
+    fn drop(&mut self) {
+        log::debug!("Dropping pipeline");
+
+        unsafe {
+            self.lve_device.device.destroy_shader_module(self.vert_shader_module, None);
+            self.lve_device.device.destroy_shader_module(self.frag_shader_module, None);
+            self.lve_device.device.destroy_pipeline(self.graphics_pipeline, None);
         }
     }
 }

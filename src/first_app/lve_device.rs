@@ -13,6 +13,7 @@ use winit::window::Window;
 use std::{
     ffi::{CStr, CString},
     os::raw::c_void,
+    rc::Rc,
 };
 
 #[cfg(debug_assertions)]
@@ -102,7 +103,7 @@ pub struct LveDevice {
 
 impl LveDevice {
     /// Will create a new instance of a vulkan device and all of it's associated functions
-    pub fn new(window: &Window) -> Self {
+    pub fn new(window: &Window) -> Rc<Self> {
         let entry = unsafe {
             Entry::new()
                 .map_err(|e| log::error!("Failed to create entry: {}", e))
@@ -118,7 +119,7 @@ impl LveDevice {
         let command_pool =
             Self::create_command_pool(&instance, &surface, surface_khr, physical_device, &device);
 
-        Self {
+        Rc::new(Self {
             _entry: entry,
             instance,
             debug_messenger,
@@ -130,28 +131,7 @@ impl LveDevice {
             graphics_queue,
             present_queue,
             command_pool,
-        }
-    }
-
-    pub unsafe fn destroy(&mut self) {
-        log::debug!("Destroying device");
-        // log::debug!("Destroying command pool");
-        self.device.destroy_command_pool(self.command_pool, None);
-
-        // log::debug!("Destroying device");
-        self.device.destroy_device(None);
-
-        // log::debug!("Destroying surface");
-        self.surface.destroy_surface(self.surface_khr, None);
-
-        // log::debug!("Destroying debug messenger");
-        // Destroy the Debug messenger
-        if let Some((report, callback)) = self.debug_messenger.take() {
-            report.destroy_debug_utils_messenger(callback, None);
-        }
-
-        // log::debug!("Destroying instance");
-        self.instance.destroy_instance(None);
+        })
     }
 
     pub fn get_swapchain_support(&self) -> SwapChainSupportDetails {
@@ -832,6 +812,31 @@ impl LveDevice {
             capabilities,
             formats,
             present_modes,
+        }
+    }
+}
+
+impl Drop for LveDevice {
+    fn drop(&mut self) {
+        log::debug!("Dropping device");
+        unsafe {
+            // log::debug!("Destroying command pool");
+            self.device.destroy_command_pool(self.command_pool, None);
+    
+            // log::debug!("Destroying device");
+            self.device.destroy_device(None);
+    
+            // log::debug!("Destroying surface");
+            self.surface.destroy_surface(self.surface_khr, None);
+    
+            // log::debug!("Destroying debug messenger");
+            // Destroy the Debug messenger
+            if let Some((report, callback)) = self.debug_messenger.take() {
+                report.destroy_debug_utils_messenger(callback, None);
+            }
+    
+            // log::debug!("Destroying instance");
+            self.instance.destroy_instance(None);
         }
     }
 }

@@ -132,3 +132,9 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 # 11: Renderer & Systems ([link](https://www.youtube.com/watch?v=uGRSTRGlZVs&t=1257s&ab_channel=BrendanGalea))
 - No big changes of note.
 - Will fork the gravity simulation.
+
+# Refactor
+- In making the little gravity simulation after the last tutorial, it became apparent that the way the code was set up was not going to work. In the current state, each game object would need its own version of the model, even if it was the exact same model that another object was using. Since we are not modifying the models in the code, this is just inefficient and it takes a while to load and destroy all the models.
+    - In the previous version of the code, having the game object contain a reference to the model was (I think, could be wrong) impossible as it was ambiguous when the model should be destroyed.
+- To solve this issue, the `LveModel` and the `LveDevice` structs were made to return smart pointers from their constructors. This allows for many different game objects to all access the same model and then release the model (and it vertex buffers) from memory when no game object is using it anymore. To do this, a smart pointer to the `LveDevice` was also needed so that the model could de allocate when it was dropped. While I was at it, I implemented the drop trait for the rest of the modules in the engine, allowing for the same behaviour.
+- I will merge these changes with the Gravity sim branch 

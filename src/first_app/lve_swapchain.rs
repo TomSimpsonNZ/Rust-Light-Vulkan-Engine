@@ -4,9 +4,12 @@ use ash::extensions::khr::Swapchain;
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
+use std::rc::Rc;
+
 pub const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
 pub struct LveSwapchain {
+    lve_device: Rc<LveDevice>,
     swapchain: Swapchain,
     pub swapchain_khr: vk::SwapchainKHR,
     swapchain_image_format: vk::Format,
@@ -28,7 +31,7 @@ pub struct LveSwapchain {
 
 impl LveSwapchain {
     pub fn new(
-        lve_device: &LveDevice,
+        lve_device: Rc<LveDevice>,
         window_extent: vk::Extent2D,
         old_swapchain: Option<vk::SwapchainKHR>,
     ) -> Self {
@@ -38,7 +41,7 @@ impl LveSwapchain {
         };
 
         let (swapchain, swapchain_khr, swapchain_images, swapchain_image_format, swapchain_extent) =
-            Self::create_swapchain(lve_device, window_extent, old_swapchain);
+            Self::create_swapchain(&lve_device, window_extent, old_swapchain);
 
         let swapchain_image_views = Self::create_image_views(
             &lve_device.device,
@@ -49,7 +52,7 @@ impl LveSwapchain {
         let render_pass = Self::create_render_pass(&lve_device, swapchain_image_format);
 
         let (depth_images, depth_image_memories, depth_image_views, swapchain_depth_format) =
-            Self::create_depth_resources(lve_device, &swapchain_images, swapchain_extent);
+            Self::create_depth_resources(&lve_device, &swapchain_images, swapchain_extent);
 
         let swapchain_framebuffers = Self::create_framebuffers(
             &lve_device.device,
@@ -67,6 +70,7 @@ impl LveSwapchain {
         ) = Self::create_sync_objects(&lve_device.device, &swapchain_images);
 
         Self {
+            lve_device,
             swapchain,
             swapchain_khr,
             swapchain_image_format,
@@ -85,45 +89,6 @@ impl LveSwapchain {
             images_in_flight,
             current_frame: 0,
         }
-    }
-
-    pub unsafe fn destroy(&mut self, device: &Device) {
-        log::debug!("Destroying swapchain");
-        self.swapchain_image_views
-            .iter()
-            .for_each(|iv| device.destroy_image_view(*iv, None));
-
-        self.swapchain.destroy_swapchain(self.swapchain_khr, None);
-
-        self.depth_image_views
-            .iter()
-            .for_each(|iv| device.destroy_image_view(*iv, None));
-
-        self.depth_images
-            .iter()
-            .for_each(|i| device.destroy_image(*i, None));
-
-        self.depth_image_memories
-            .iter()
-            .for_each(|m| device.free_memory(*m, None));
-
-        self.swapchain_framebuffers
-            .iter()
-            .for_each(|f| device.destroy_framebuffer(*f, None));
-
-        device.destroy_render_pass(self.render_pass, None);
-
-        self.render_finished_semaphores
-            .iter()
-            .for_each(|s| device.destroy_semaphore(*s, None));
-
-        self.image_available_semaphores
-            .iter()
-            .for_each(|s| device.destroy_semaphore(*s, None));
-
-        self.in_flight_fences
-            .iter()
-            .for_each(|f| device.destroy_fence(*f, None));
     }
 
     pub fn compare_swap_formats(&self, other_swapchain: &Self) -> Result<(), ()> {
@@ -152,7 +117,7 @@ impl LveSwapchain {
         self.swapchain_extent.width as f32 / self.swapchain_extent.height as f32
     }
 
-    pub fn find_depth_format(lve_device: &LveDevice) -> vk::Format {
+    pub fn find_depth_format(lve_device: &Rc<LveDevice>) -> vk::Format {
         let candidates = vec![
             vk::Format::D32_SFLOAT,
             vk::Format::D32_SFLOAT_S8_UINT,
@@ -245,7 +210,7 @@ impl LveSwapchain {
     }
 
     fn create_swapchain(
-        lve_device: &LveDevice,
+        lve_device: &Rc<LveDevice>,
         window_extent: vk::Extent2D,
         old_swapchain: vk::SwapchainKHR,
     ) -> (
@@ -365,7 +330,7 @@ impl LveSwapchain {
     }
 
     fn create_depth_resources(
-        lve_device: &LveDevice,
+        lve_device: &Rc<LveDevice>,
         swapchain_images: &Vec<vk::Image>,
         swapchain_extent: vk::Extent2D,
     ) -> (
@@ -434,7 +399,7 @@ impl LveSwapchain {
     }
 
     fn create_render_pass(
-        lve_device: &LveDevice,
+        lve_device: &Rc<LveDevice>,
         swapchain_image_format: vk::Format,
     ) -> vk::RenderPass {
         let depth_attachment = vk::AttachmentDescription::builder()
@@ -657,6 +622,52 @@ impl LveSwapchain {
                     std::cmp::min(capabilities.max_image_extent.height, window_extent.height),
                 ),
             };
+        }
+    }
+}
+
+impl Drop for LveSwapchain {
+    fn drop(&mut self) {
+        log::debug!("Dropping swapchain");
+
+        unsafe {
+            self.swapchain_image_views
+                .iter()
+                .for_each(|iv| self.lve_device.device.destroy_image_view(*iv, None));
+
+            self.swapchain.destroy_swapchain(self.swapchain_khr, None);
+
+            self.depth_image_views
+                .iter()
+                .for_each(|iv| self.lve_device.device.destroy_image_view(*iv, None));
+
+            self.depth_images
+                .iter()
+                .for_each(|i| self.lve_device.device.destroy_image(*i, None));
+
+            self.depth_image_memories
+                .iter()
+                .for_each(|m| self.lve_device.device.free_memory(*m, None));
+
+            self.swapchain_framebuffers
+                .iter()
+                .for_each(|f| self.lve_device.device.destroy_framebuffer(*f, None));
+
+            self.lve_device
+                .device
+                .destroy_render_pass(self.render_pass, None);
+
+            self.render_finished_semaphores
+                .iter()
+                .for_each(|s| self.lve_device.device.destroy_semaphore(*s, None));
+
+            self.image_available_semaphores
+                .iter()
+                .for_each(|s| self.lve_device.device.destroy_semaphore(*s, None));
+
+            self.in_flight_fences
+                .iter()
+                .for_each(|f| self.lve_device.device.destroy_fence(*f, None));
         }
     }
 }

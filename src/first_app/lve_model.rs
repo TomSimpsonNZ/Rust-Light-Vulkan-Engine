@@ -4,6 +4,7 @@ use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
 use std::mem::size_of;
+use std::rc::Rc;
 
 extern crate nalgebra as na;
 
@@ -46,26 +47,27 @@ impl Vertex {
 }
 
 pub struct LveModel {
+    lve_device: Rc<LveDevice>,
     vertex_buffer: vk::Buffer,
     vertex_buffer_memory: vk::DeviceMemory,
     vertex_count: u32,
+    name: String,
+    id: u32,
 }
 
 impl LveModel {
-    pub fn new(lve_device: &LveDevice, vertices: &Vec<Vertex>) -> Self {
+    pub fn new(lve_device: Rc<LveDevice>, vertices: &Vec<Vertex>, name: String, id: u32) -> Rc<Self> {
         let (vertex_buffer, vertex_buffer_memory, vertex_count) =
-            Self::create_vertex_buffers(lve_device, vertices);
+            Self::create_vertex_buffers(&lve_device, vertices);
 
-        Self {
+        Rc::new(Self {
+            lve_device,
             vertex_buffer,
             vertex_buffer_memory,
             vertex_count,
-        }
-    }
-
-    pub unsafe fn destroy(&mut self, device: &Device) {
-        device.destroy_buffer(self.vertex_buffer, None);
-        device.free_memory(self.vertex_buffer_memory, None);
+            name,
+            id,
+        })
     }
 
     pub unsafe fn draw(&self, device: &Device, command_buffer: vk::CommandBuffer) {
@@ -80,7 +82,7 @@ impl LveModel {
     }
 
     fn create_vertex_buffers(
-        lve_device: &LveDevice,
+        lve_device: &Rc<LveDevice>,
         vertices: &Vec<Vertex>,
     ) -> (vk::Buffer, vk::DeviceMemory, u32) {
         let vertex_count = vertices.len();
@@ -115,5 +117,15 @@ impl LveModel {
         };
 
         (vertex_buffer, vertex_buffer_memory, vertex_count as u32)
+    }
+}
+
+impl Drop for LveModel {
+    fn drop(&mut self) {
+        log::debug!("Dropping Model: {} - {}", self.name, self.id);
+        unsafe {
+            self.lve_device.device.destroy_buffer(self.vertex_buffer, None);
+            self.lve_device.device.free_memory(self.vertex_buffer_memory, None);
+        }
     }
 }
