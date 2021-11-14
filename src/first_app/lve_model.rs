@@ -5,10 +5,11 @@ use ash::{vk, Device};
 
 use std::mem::size_of;
 use std::rc::Rc;
+use std::str::FromStr;
 
 extern crate nalgebra as na;
 
-type Pos = na::Vector2<f32>;
+type Pos = na::Vector3<f32>;
 type Color = na::Vector3<f32>;
 
 #[derive(Clone, Copy)]
@@ -33,7 +34,7 @@ impl Vertex {
             vk::VertexInputAttributeDescription::builder()
                 .binding(0)
                 .location(0)
-                .format(vk::Format::R32G32_SFLOAT)
+                .format(vk::Format::R32G32B32_SFLOAT)
                 .offset(0)
                 .build(),
             vk::VertexInputAttributeDescription::builder()
@@ -55,16 +56,15 @@ pub struct LveModel {
 }
 
 impl LveModel {
-    pub fn new(lve_device: Rc<LveDevice>, vertices: &Vec<Vertex>, name: String) -> Rc<Self> {
+    pub fn new(lve_device: Rc<LveDevice>, vertices: &Vec<Vertex>, name: &str) -> Rc<Self> {
         let (vertex_buffer, vertex_buffer_memory, vertex_count) =
             Self::create_vertex_buffers(&lve_device, vertices);
-
         Rc::new(Self {
             lve_device,
             vertex_buffer,
             vertex_buffer_memory,
             vertex_count,
-            name,
+            name: String::from_str(name).unwrap(),
         })
     }
 

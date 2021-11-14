@@ -141,3 +141,6 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 
 ## Small edit
 - Removed the ID field from the model, the whole point of the refactor was that there would only be one version of each model :)
+
+# 12: Euler Angles & Homogeneous Coordinates ([Link](https://www.youtube.com/watch?v=0X_kRtyVzm4&ab_channel=BrendanGalea))
+- No big changes of note.

@@ -14,14 +14,12 @@ extern crate nalgebra as na;
 #[derive(Debug, Clone, Copy)]
 pub struct Align16<T>(pub T);
 
-type Pos = Align16<na::Vector2<f32>>;
 type Color = Align16<na::Vector3<f32>>;
-type Transform = Align16<na::Matrix2<f32>>;
+type Transform = Align16<na::Matrix4<f32>>;
 
 #[derive(Debug)]
 pub struct SimplePushConstantData {
     transform: Transform,
-    offset: Pos,
     color: Color,
 }
 
@@ -113,11 +111,11 @@ impl SimpleRenderSystem {
         unsafe { self.lve_pipeline.bind(&self.lve_device.device, command_buffer) };
 
         for game_obj in game_objects.iter_mut() {
-            game_obj.transform.rotation = game_obj.transform.rotation + 0.01 % 2.0 * PI;
+            game_obj.transform.rotation[1] = game_obj.transform.rotation[1] + 0.01 % 2.0 * PI;
+            game_obj.transform.rotation[0] = game_obj.transform.rotation[0] + 0.005 % 2.0 * PI;
 
             let push = SimplePushConstantData {
-                transform: Align16(game_obj.transform.mat2()),
-                offset: Align16(game_obj.transform.translation),
+                transform: Align16(game_obj.transform.mat4()),
                 color: Align16(game_obj.color),
             };
 
