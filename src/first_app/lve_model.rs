@@ -46,18 +46,16 @@ impl Vertex {
     }
 }
 
-#[derive(PartialEq)]
 pub struct LveModel {
     lve_device: Rc<LveDevice>,
     vertex_buffer: vk::Buffer,
     vertex_buffer_memory: vk::DeviceMemory,
     vertex_count: u32,
     name: String,
-    id: u32,
 }
 
 impl LveModel {
-    pub fn new(lve_device: Rc<LveDevice>, vertices: &Vec<Vertex>, name: String, id: u32) -> Rc<Self> {
+    pub fn new(lve_device: Rc<LveDevice>, vertices: &Vec<Vertex>, name: String) -> Rc<Self> {
         let (vertex_buffer, vertex_buffer_memory, vertex_count) =
             Self::create_vertex_buffers(&lve_device, vertices);
 
@@ -67,7 +65,6 @@ impl LveModel {
             vertex_buffer_memory,
             vertex_count,
             name,
-            id,
         })
     }
 
@@ -123,10 +120,14 @@ impl LveModel {
 
 impl Drop for LveModel {
     fn drop(&mut self) {
-        log::debug!("Dropping Model: {} - {}", self.name, self.id);
+        log::debug!("Dropping Model: {}", self.name);
         unsafe {
-            self.lve_device.device.destroy_buffer(self.vertex_buffer, None);
-            self.lve_device.device.free_memory(self.vertex_buffer_memory, None);
+            self.lve_device
+                .device
+                .destroy_buffer(self.vertex_buffer, None);
+            self.lve_device
+                .device
+                .free_memory(self.vertex_buffer_memory, None);
         }
     }
 }

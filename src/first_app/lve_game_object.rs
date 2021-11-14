@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 extern crate nalgebra as na;
 
-#[derive(PartialEq)]
+
 pub struct Transform2DComponent {
     pub translation: na::Vector2<f32>,
     pub scale: na::Vector2<f32>,
@@ -27,13 +27,13 @@ impl Transform2DComponent {
     }
 }
 
-#[derive(PartialEq)]
+
 pub struct RigidBody2DComponent {
     pub velocity: na::Vector2<f32>,
     pub mass: f32,
 }
 
-#[derive(PartialEq)]
+
 pub struct LveGameObject {
     pub model: Rc<LveModel>,
     pub color: na::Vector3<f32>,

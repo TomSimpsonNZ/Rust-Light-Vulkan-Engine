@@ -822,19 +822,19 @@ impl Drop for LveDevice {
         unsafe {
             // log::debug!("Destroying command pool");
             self.device.destroy_command_pool(self.command_pool, None);
-    
+
             // log::debug!("Destroying device");
             self.device.destroy_device(None);
-    
+
             // log::debug!("Destroying surface");
             self.surface.destroy_surface(self.surface_khr, None);
-    
+
             // log::debug!("Destroying debug messenger");
             // Destroy the Debug messenger
             if let Some((report, callback)) = self.debug_messenger.take() {
                 report.destroy_debug_utils_messenger(callback, None);
             }
-    
+
             // log::debug!("Destroying instance");
             self.instance.destroy_instance(None);
         }

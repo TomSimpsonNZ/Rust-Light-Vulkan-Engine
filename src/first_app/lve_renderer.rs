@@ -253,8 +253,11 @@ impl LveRenderer {
                 .unwrap()
         };
 
-        let new_lve_swapchain =
-            LveSwapchain::new(Rc::clone(&self.lve_device), extent, Some(self.lve_swapchain.swapchain_khr));
+        let new_lve_swapchain = LveSwapchain::new(
+            Rc::clone(&self.lve_device),
+            extent,
+            Some(self.lve_swapchain.swapchain_khr),
+        );
 
         self.lve_swapchain
             .compare_swap_formats(&new_lve_swapchain)
@@ -299,7 +302,9 @@ impl Drop for LveRenderer {
     fn drop(&mut self) {
         log::debug!("Dropping renderer");
         unsafe {
-            self.lve_device.device.free_command_buffers(self.lve_device.command_pool, &self.command_buffers);
+            self.lve_device
+                .device
+                .free_command_buffers(self.lve_device.command_pool, &self.command_buffers);
             self.command_buffers.clear();
         }
     }

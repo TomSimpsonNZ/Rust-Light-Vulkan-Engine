@@ -54,7 +54,8 @@ impl SimpleRenderSystem {
     pub fn new(lve_device: Rc<LveDevice>, render_pass: &vk::RenderPass) -> Self {
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
 
-        let lve_pipeline = Self::create_pipeline(Rc::clone(&lve_device), render_pass, &pipeline_layout);
+        let lve_pipeline =
+            Self::create_pipeline(Rc::clone(&lve_device), render_pass, &pipeline_layout);
 
         Self {
             lve_device,
@@ -110,7 +111,10 @@ impl SimpleRenderSystem {
         command_buffer: vk::CommandBuffer,
         game_objects: &mut Vec<LveGameObject>,
     ) {
-        unsafe { self.lve_pipeline.bind(&self.lve_device.device, command_buffer) };
+        unsafe {
+            self.lve_pipeline
+                .bind(&self.lve_device.device, command_buffer)
+        };
 
         for game_obj in game_objects.iter_mut() {
             game_obj.transform.rotation = game_obj.transform.rotation + 0.01 % 2.0 * PI;
@@ -144,7 +148,9 @@ impl Drop for SimpleRenderSystem {
         log::debug!("Dropping SimpleRenderSystem");
 
         unsafe {
-            self.lve_device.device.destroy_pipeline_layout(self.pipeline_layout, None);
+            self.lve_device
+                .device
+                .destroy_pipeline_layout(self.pipeline_layout, None);
         }
     }
 }

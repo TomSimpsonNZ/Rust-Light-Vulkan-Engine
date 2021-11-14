@@ -277,9 +277,15 @@ impl Drop for LvePipeline {
         log::debug!("Dropping pipeline");
 
         unsafe {
-            self.lve_device.device.destroy_shader_module(self.vert_shader_module, None);
-            self.lve_device.device.destroy_shader_module(self.frag_shader_module, None);
-            self.lve_device.device.destroy_pipeline(self.graphics_pipeline, None);
+            self.lve_device
+                .device
+                .destroy_shader_module(self.vert_shader_module, None);
+            self.lve_device
+                .device
+                .destroy_shader_module(self.frag_shader_module, None);
+            self.lve_device
+                .device
+                .destroy_pipeline(self.graphics_pipeline, None);
         }
     }
 }

@@ -12,16 +12,14 @@ use lve_model::*;
 use lve_renderer::*;
 use simple_render_system::*;
 
-use itertools::Itertools;
-
 use winit::{
     dpi::LogicalSize,
     event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
 
-use std::{f32::consts::PI, str::FromStr};
 use std::rc::Rc;
+use std::{f32::consts::PI, str::FromStr};
 
 extern crate nalgebra as na;
 
@@ -72,7 +70,6 @@ impl GravityPhysicsSystem {
     }
 
     fn step_simulation(&self, physics_objects: &mut Vec<LveGameObject>, dt: f32) {
-
         for i in 0..physics_objects.len() {
             physics_objects.rotate_left(i);
             let (obj_a, obj_bs) = physics_objects.split_at_mut(1);
@@ -82,7 +79,7 @@ impl GravityPhysicsSystem {
             })
         }
 
-        // Rotate one more time to get to original array 
+        // Rotate one more time to get to original array
         physics_objects.rotate_left(1);
 
         for obj in physics_objects.iter_mut() {
@@ -113,7 +110,7 @@ impl Vec2FieldSystem {
     }
 }
 
-fn create_square_model(lve_device: &LveDevice, offset: na::Vector2<f32>) -> LveModel {
+fn create_square_model(lve_device: &Rc<LveDevice>, offset: na::Vector2<f32>) -> Rc<LveModel> {
     let mut vertices = vec![
         Vertex {
             position: na::vector![-0.5, -0.5],
@@ -145,10 +142,14 @@ fn create_square_model(lve_device: &LveDevice, offset: na::Vector2<f32>) -> LveM
         v.position += offset;
     }
 
-    LveModel::new(lve_device, &vertices)
+    LveModel::new(
+        Rc::clone(lve_device),
+        &vertices,
+        String::from_str("square").unwrap(),
+    )
 }
 
-fn create_circle_model(lve_device: &LveDevice, num_sides: usize) -> LveModel {
+fn create_circle_model(lve_device: &Rc<LveDevice>, num_sides: usize) -> Rc<LveModel> {
     let mut unique_vertices = Vec::new();
     for i in 0..num_sides {
         let angle = (i as f32) * 2.0 * PI / (num_sides as f32);
@@ -172,7 +173,11 @@ fn create_circle_model(lve_device: &LveDevice, num_sides: usize) -> LveModel {
         vertices.push(unique_vertices[num_sides])
     }
 
-    LveModel::new(lve_device, &vertices)
+    LveModel::new(
+        Rc::clone(lve_device),
+        &vertices,
+        String::from_str("circle").unwrap(),
+    )
 }
 
 pub struct GravityVecFieldApp {
@@ -193,8 +198,10 @@ impl GravityVecFieldApp {
 
         let lve_renderer = LveRenderer::new(Rc::clone(&lve_device), &window);
 
-        let simple_render_system =
-            SimpleRenderSystem::new(Rc::clone(&lve_device), &lve_renderer.get_swapchain_render_pass());
+        let simple_render_system = SimpleRenderSystem::new(
+            Rc::clone(&lve_device),
+            &lve_renderer.get_swapchain_render_pass(),
+        );
 
         let physics_objects = Self::load_physics_objects(&lve_device);
 
@@ -216,42 +223,34 @@ impl GravityVecFieldApp {
     }
 
     pub fn run(&mut self) {
-
-        match self.lve_renderer
-            .begin_frame(&self.window)
-        {
+        match self.lve_renderer.begin_frame(&self.window) {
             Some(command_buffer) => {
-
                 // Update system
-                self.gravity_system.update(&mut self.physics_objects, 1.0 / 120.0, Some(5));
-                Vec2FieldSystem::update(&self.gravity_system, &self.physics_objects, &mut self.vector_field);
+                self.gravity_system
+                    .update(&mut self.physics_objects, 1.0 / 120.0, Some(5));
+                Vec2FieldSystem::update(
+                    &self.gravity_system,
+                    &self.physics_objects,
+                    &mut self.vector_field,
+                );
 
                 // Render System
                 self.lve_renderer
                     .begin_swapchain_render_pass(command_buffer);
                 self.simple_render_system
-                    .render_game_objects(
-                    command_buffer,
-                    &mut self.physics_objects,
-                );
-                self.simple_render_system.render_game_objects(
-                    &self.lve_device.device,
-                    command_buffer,
-                    &mut self.vector_field,
-                );
-                self.lve_renderer
-                    .end_swapchain_render_pass(command_buffer);
+                    .render_game_objects(command_buffer, &mut self.physics_objects);
+                self.simple_render_system
+                    .render_game_objects(command_buffer, &mut self.vector_field);
+                self.lve_renderer.end_swapchain_render_pass(command_buffer);
             }
             None => {}
         }
 
-        self.lve_renderer
-            .end_frame();
+        self.lve_renderer.end_frame();
     }
 
     pub fn resize(&mut self) {
-        self.lve_renderer
-            .recreate_swapchain(&self.window)
+        self.lve_renderer.recreate_swapchain(&self.window)
     }
 
     fn new_window(w: u32, h: u32, name: &str) -> (EventLoop<()>, Window) {
@@ -269,7 +268,7 @@ impl GravityVecFieldApp {
         (event_loop, winit_window)
     }
 
-    fn load_physics_objects(lve_device: &LveDevice) -> Vec<LveGameObject> {
+    fn load_physics_objects(lve_device: &Rc<LveDevice>) -> Vec<LveGameObject> {
         let circ_model = create_circle_model(lve_device, 64);
 
         let color = na::vector![1.0, 0.0, 0.0];
@@ -283,7 +282,7 @@ impl GravityVecFieldApp {
             mass: 1.0,
         };
 
-        let red = LveGameObject::new(circ_model, color, transform, rigid_body);
+        let red = LveGameObject::new(Rc::clone(&circ_model), color, transform, rigid_body);
 
         let color = na::vector![0.0, 0.0, 1.0];
         let transform = Transform2DComponent {
@@ -296,20 +295,24 @@ impl GravityVecFieldApp {
             mass: 1.0,
         };
 
-        let blue = LveGameObject::new(circ_model, color, transform, rigid_body);
+        let blue = LveGameObject::new(Rc::clone(&circ_model), color, transform, rigid_body);
 
         vec![red, blue]
     }
 
-    fn load_vec_field(lve_device: &LveDevice, grid_count: u32) -> Vec<LveGameObject> {
+    fn load_vec_field(lve_device: &Rc<LveDevice>, grid_count: u32) -> Vec<LveGameObject> {
         let mut vector_field = Vec::new();
+        
+        let square_model = create_square_model(lve_device, na::vector![0.5, 0.0]);
 
         for i in 0..grid_count {
             for j in 0..grid_count {
-                let square_model = create_square_model(lve_device, na::vector![0.5, 0.0]);
                 let color = na::vector![0.9, 0.9, 0.9];
                 let transform = Transform2DComponent {
-                    translation: na::vector![-1.0 + (i as f32 + 0.5) * 2.0 / (grid_count as f32), -1.0 + (j as f32 + 0.5) * 2.0 / (grid_count as f32)],
+                    translation: na::vector![
+                        -1.0 + (i as f32 + 0.5) * 2.0 / (grid_count as f32),
+                        -1.0 + (j as f32 + 0.5) * 2.0 / (grid_count as f32)
+                    ],
                     scale: na::vector![0.005, 0.005],
                     rotation: 0.0,
                 };
@@ -317,7 +320,12 @@ impl GravityVecFieldApp {
                     velocity: na::vector![0.0, 0.0],
                     mass: 1.0,
                 };
-                vector_field.push(LveGameObject::new(square_model, color, transform, rigid_body));
+                vector_field.push(LveGameObject::new(
+                    Rc::clone(&square_model),
+                    color,
+                    transform,
+                    rigid_body,
+                ));
             }
         }
 

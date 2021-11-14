@@ -138,3 +138,6 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 - Due to the way models are implemented, they cannot have the copy trait as Vulkan has a hard time destroying the vertex buffers. This means that a new model 
 has to be loaded for every game object, even though the model is the same for all of them. This is very inefficient, but I cannot think of a simple solution at
 the moment
+
+# Refactor
+- Implemented refactor from main branch
