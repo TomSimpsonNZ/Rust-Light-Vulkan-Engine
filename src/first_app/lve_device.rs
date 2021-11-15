@@ -1,7 +1,14 @@
 use ash::extensions::{
     ext::DebugUtils, // Read more about debugging here: https://www.lunarg.com/new-tutorial-for-vulkan-debug-utilities-extension/
-    khr::{Surface, Swapchain, Win32Surface},
+    khr::{Surface, Swapchain},
+    khr::Win32Surface,
 };
+
+#[cfg(target_os="linux")]
+use ash::extensions::khr::XlibSurface;
+#[cfg(target_os="windows")]
+use ash::extensions::khr::XlibSurface;
+
 use ash::{vk, Device, Entry, Instance};
 
 use ash::version::{DeviceV1_0, EntryV1_0, InstanceV1_0};
@@ -425,11 +432,11 @@ impl LveDevice {
 
         let extensions = Self::get_required_extensions();
 
-        let (_layer_names, layer_name_ptrs) = Self::get_enabled_layers();
-
         let mut create_info = vk::InstanceCreateInfo::builder()
-            .application_info(&app_info)
-            .enabled_extension_names(&extensions);
+        .application_info(&app_info)
+        .enabled_extension_names(&extensions);
+        
+        let (_layer_names, layer_name_ptrs) = Self::get_enabled_layers();
 
         if ENABLE_VALIDATION_LAYERS {
             Self::check_validation_layer_support(entry);
@@ -643,7 +650,11 @@ impl LveDevice {
         let mut extensions: Vec<*const i8> = Vec::new();
 
         extensions.push(Surface::name().as_ptr());
+
+        #[cfg(target_os="windows")]
         extensions.push(Win32Surface::name().as_ptr());
+        #[cfg(target_os="linux")]
+        extensions.push(XlibSurface::name().as_ptr());
 
         if ENABLE_VALIDATION_LAYERS {
             extensions.push(DebugUtils::name().as_ptr());

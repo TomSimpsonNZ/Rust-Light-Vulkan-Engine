@@ -31,7 +31,7 @@ $env:RUST_LOG="debug"
 
 #### Linux
 ```
-RUST_LOG=vulkan_tutorial_ash=debug cargo run
+export RUST_LOG="debug"
 ```
 
 More information about using this crate can be found in the [documentation](https://docs.rs/log/0.4.14/log/).
@@ -144,3 +144,4 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 
 # 12: Euler Angles & Homogeneous Coordinates ([Link](https://www.youtube.com/watch?v=0X_kRtyVzm4&ab_channel=BrendanGalea))
 - No big changes of note.
+

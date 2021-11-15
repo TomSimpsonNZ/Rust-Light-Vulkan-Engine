@@ -591,10 +591,9 @@ impl LveSwapchain {
         let present_mode = available_present_modes
             .iter()
             .map(|pm| *pm)
-            .find(|available_present_mode| *available_present_mode == vk::PresentModeKHR::MAILBOX)
-            // .find(|available_present_mode| {
-            //     *available_present_mode == vk::PresentModeKHR::IMMEDIATE
-            // })
+            // .find(|available_present_mode| *available_present_mode == vk::PresentModeKHR::MAILBOX)
+            // .find(|available_present_mode| *available_present_mode == vk::PresentModeKHR::IMMEDIATE)
+            .find(|available_present_mode| *available_present_mode == vk::PresentModeKHR::FIFO)
             .unwrap_or_else(|| {
                 log::warn!("Could not find desired present mode, defaulting to FIFO");
                 vk::PresentModeKHR::FIFO

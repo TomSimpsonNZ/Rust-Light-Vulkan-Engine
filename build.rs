@@ -53,10 +53,19 @@ fn get_root_path() -> &'static Path {
 }
 
 fn get_glslang_exe_path() -> PathBuf {
+    
     let vulkan_sdk_dir = env!("VULKAN_SDK");
+    
+    #[cfg(target_os = "windows")]
     let path = Path::new(vulkan_sdk_dir)
         .join("Bin32")
         .join("glslangValidator.exe");
+    
+    #[cfg(target_os = "linux")]
+    let path = Path::new(vulkan_sdk_dir)
+        .join("bin")
+        .join("glslangValidator");
+    
     println!("Glslang executable path: {:?}", path.as_os_str());
     path
 }
