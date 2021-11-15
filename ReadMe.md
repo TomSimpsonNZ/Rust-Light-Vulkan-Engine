@@ -145,3 +145,15 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 # 12: Euler Angles & Homogeneous Coordinates ([Link](https://www.youtube.com/watch?v=0X_kRtyVzm4&ab_channel=BrendanGalea))
 - No big changes of note.
 
+# 13: Projection Matrices
+- No big changes of note.
+- Noticed a few bugs, program crashes when run in release mode. Once again there seems to be an issue with the ash builder patterns. Will look into this further.
+
+# Bug Fixes
+- While testing the code on a few devices I ran into a few issues, the next few commits are aimed at solving these.
+
+## Linux Issues
+- By copying some of the Readme from [this repo](https://github.com/adrien-ben/vulkan-tutorial-rs), I forgot to update the 
+command for enabling the logging functionality on linux. Sorry for anyone that got confused by that...
+- Updated `build.rs` to point to the correct directory and correct file name, as there is no such thing as a `.exe` in linux.
+- Linux uses a different window manager than windows, so the extensions need to be different.
