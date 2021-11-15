@@ -3,7 +3,6 @@ use super::lve_swapchain::*;
 
 use winit::window::Window;
 
-use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 use std::rc::Rc;
 
@@ -35,7 +34,7 @@ impl LveRenderer {
         }
     }
 
-    pub fn get_frame_index(&self) -> usize {
+    pub fn _get_frame_index(&self) -> usize {
         assert!(
             self.is_frame_started,
             "Cannot get frame index when frame is not in progress"
@@ -64,12 +63,6 @@ impl LveRenderer {
             !self.is_frame_started,
             "Can't call begin_frame while already in progress"
         );
-
-        let extent = Self::get_window_extent(window);
-
-        if extent.width == 0 || extent.height == 0 {
-            return None; // Don't do anything if the window is minimised
-        }
 
         let result = unsafe {
             self.lve_swapchain
@@ -136,7 +129,7 @@ impl LveRenderer {
                 &self.lve_device.device,
                 &self.lve_device.graphics_queue,
                 &self.lve_device.present_queue,
-                &command_buffer,
+                command_buffer,
                 self.current_image_index,
             )
             .map_err(|e| log::error!("Unable to present swapchain image: {}", e))
@@ -262,7 +255,7 @@ impl LveRenderer {
 
         self.lve_swapchain
             .compare_swap_formats(&new_lve_swapchain)
-            .map_err(|e| log::error!("Swapchain image (or depth) format has changed"))
+            .map_err(|_| log::error!("Swapchain image (or depth) format has changed"))
             .unwrap();
 
         self.lve_swapchain = new_lve_swapchain;
@@ -270,7 +263,7 @@ impl LveRenderer {
         // We'll come back to this
     }
 
-    fn get_window_extent(window: &Window) -> vk::Extent2D {
+    pub fn get_window_extent(window: &Window) -> vk::Extent2D {
         let window_inner_size = window.inner_size();
         vk::Extent2D {
             width: window_inner_size.width,

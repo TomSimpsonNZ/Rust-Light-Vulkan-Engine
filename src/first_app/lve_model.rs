@@ -1,6 +1,5 @@
 use super::lve_device::*;
 
-use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
 use std::mem::size_of;

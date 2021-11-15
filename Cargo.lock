@@ -54,18 +54,18 @@ dependencies = [
 
 [[package]]
 name = "ash"
-version = "0.32.1"
+version = "0.33.3+1.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06063a002a77d2734631db74e8f4ce7148b77fe522e6bca46f2ae7774fd48112"
+checksum = "cc4f1d82f164f838ae413296d1131aa6fa79b917d25bebaa7033d25620c09219"
 dependencies = [
  "libloading 0.7.1",
 ]
 
 [[package]]
 name = "ash-window"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d058436a3a8410c6e9b625c4e763ea6eaba97d771c303fc2c8e3595b666ffa3"
+checksum = "12f91ce4c6be1a2ba99d3d6cd57d5bae9ac6d6f903b5ae53d6b1dee2edf872af"
 dependencies = [
  "ash",
  "raw-window-handle",

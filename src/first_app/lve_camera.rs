@@ -7,7 +7,7 @@ pub struct LveCamera {
 }
 
 impl LveCamera {
-    pub fn set_orthographic_projection(
+    pub fn _set_orthographic_projection(
         left: f32,
         right: f32,
         top: f32,

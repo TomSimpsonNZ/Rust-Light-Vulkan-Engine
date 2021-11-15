@@ -3,7 +3,6 @@ use super::lve_game_object::*;
 use super::lve_pipeline::*;
 use super::lve_camera::*;
 
-use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
 use std::f32::consts::PI;

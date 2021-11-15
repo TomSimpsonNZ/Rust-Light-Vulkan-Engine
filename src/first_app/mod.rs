@@ -68,6 +68,12 @@ impl VulkanApp {
         // self.camera = LveCamera::set_orthographic_projection(-aspect, aspect, -1.0, 1.0, -1.0, 1.0);
         let camera = LveCamera::set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 10.0);
 
+        let extent = LveRenderer::get_window_extent(&self.window);
+
+        if extent.width == 0 || extent.height == 0 {
+            return; // Don't do anything if the window is minimised
+        }
+
         match self.lve_renderer.begin_frame(&self.window) {
             Some(command_buffer) => {
                 self.lve_renderer

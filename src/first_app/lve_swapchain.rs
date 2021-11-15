@@ -1,7 +1,6 @@
 use super::lve_device::*;
 
 use ash::extensions::khr::Swapchain;
-use ash::version::DeviceV1_0;
 use ash::{vk, Device};
 
 use std::rc::Rc;
@@ -15,7 +14,7 @@ pub struct LveSwapchain {
     swapchain_image_format: vk::Format,
     swapchain_depth_format: vk::Format,
     pub swapchain_extent: vk::Extent2D,
-    swapchain_images: Vec<vk::Image>,
+    _swapchain_images: Vec<vk::Image>,
     swapchain_image_views: Vec<vk::ImageView>,
     pub swapchain_framebuffers: Vec<vk::Framebuffer>,
     pub render_pass: vk::RenderPass,
@@ -76,7 +75,7 @@ impl LveSwapchain {
             swapchain_image_format,
             swapchain_depth_format,
             swapchain_extent,
-            swapchain_images,
+            _swapchain_images: swapchain_images,
             swapchain_image_views,
             swapchain_framebuffers,
             render_pass,
@@ -101,8 +100,8 @@ impl LveSwapchain {
         }
     }
 
-    pub fn image_count(&self) -> usize {
-        self.swapchain_images.len()
+    pub fn _image_count(&self) -> usize {
+        self._swapchain_images.len()
     }
 
     pub fn width(&self) -> u32 {
@@ -153,9 +152,10 @@ impl LveSwapchain {
         device: &Device,
         graphics_queue: &vk::Queue,
         present_queue: &vk::Queue,
-        buffer: &vk::CommandBuffer,
+        buffer: vk::CommandBuffer,
         image_index: usize,
     ) -> Result<bool, vk::Result> {
+
         if self.images_in_flight[image_index] != vk::Fence::null() {
             unsafe {
                 device
@@ -176,9 +176,8 @@ impl LveSwapchain {
         let submit_info = vk::SubmitInfo::builder()
             .wait_semaphores(&wait_semaphores)
             .wait_dst_stage_mask(&wait_stages)
-            .command_buffers(&[*buffer])
-            .signal_semaphores(&signal_semaphores)
-            .build();
+            .command_buffers(std::slice::from_ref(&buffer))
+            .signal_semaphores(&signal_semaphores);
 
         unsafe {
             device
@@ -189,7 +188,7 @@ impl LveSwapchain {
             device
                 .queue_submit(
                     *graphics_queue,
-                    &[submit_info],
+                    std::slice::from_ref(&submit_info),
                     self.in_flight_fences[self.current_frame],
                 )
                 .map_err(|e| log::error!("Unable to submit draw command buffer: {}", e))
@@ -198,11 +197,12 @@ impl LveSwapchain {
 
         let swapchains = [self.swapchain_khr];
 
+        let image_index = image_index as u32;
+
         let present_info = vk::PresentInfoKHR::builder()
             .wait_semaphores(&signal_semaphores)
             .swapchains(&swapchains)
-            .image_indices(&[image_index as u32])
-            .build();
+            .image_indices(std::slice::from_ref(&image_index));
 
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -262,8 +262,7 @@ impl LveSwapchain {
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .present_mode(present_mode)
             .clipped(true)
-            .old_swapchain(old_swapchain)
-            .build();
+            .old_swapchain(old_swapchain);
 
         let swapchain = Swapchain::new(&lve_device.instance, &lve_device.device);
 
@@ -316,8 +315,7 @@ impl LveSwapchain {
                         level_count: 1,
                         base_array_layer: 0,
                         layer_count: 1,
-                    })
-                    .build();
+                    });
 
                 unsafe {
                     device
@@ -361,8 +359,7 @@ impl LveSwapchain {
                     .usage(vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT)
                     .samples(vk::SampleCountFlags::TYPE_1)
                     .sharing_mode(vk::SharingMode::EXCLUSIVE)
-                    .flags(vk::ImageCreateFlags::empty())
-                    .build();
+                    .flags(vk::ImageCreateFlags::empty());
 
                 lve_device
                     .create_image_with_info(&image_info, vk::MemoryPropertyFlags::DEVICE_LOCAL)
@@ -382,8 +379,7 @@ impl LveSwapchain {
                         level_count: 1,
                         base_array_layer: 0,
                         layer_count: 1,
-                    })
-                    .build();
+                    });
 
                 unsafe {
                     lve_device
@@ -439,8 +435,7 @@ impl LveSwapchain {
         let subpass = vk::SubpassDescription::builder()
             .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
             .color_attachments(&attachment_refs)
-            .depth_stencil_attachment(&depth_attachment_ref)
-            .build();
+            .depth_stencil_attachment(&depth_attachment_ref);
 
         let dependancy = vk::SubpassDependency::builder()
             .src_subpass(vk::SUBPASS_EXTERNAL)
@@ -457,16 +452,14 @@ impl LveSwapchain {
             .dst_access_mask(
                 vk::AccessFlags::COLOR_ATTACHMENT_WRITE
                     | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-            )
-            .build();
+            );
 
         let attachments = [color_attachment, depth_attachment];
 
         let render_pass_info = vk::RenderPassCreateInfo::builder()
             .attachments(&attachments)
-            .subpasses(&[subpass])
-            .dependencies(&[dependancy])
-            .build();
+            .subpasses(std::slice::from_ref(&subpass))
+            .dependencies(std::slice::from_ref(&dependancy));
 
         unsafe {
             lve_device
@@ -494,8 +487,7 @@ impl LveSwapchain {
                     .attachments(&attachments)
                     .width(swapchain_extent.width)
                     .height(swapchain_extent.height)
-                    .layers(1)
-                    .build();
+                    .layers(1);
 
                 unsafe {
                     device
@@ -516,11 +508,10 @@ impl LveSwapchain {
         Vec<vk::Fence>,
         Vec<vk::Fence>,
     ) {
-        let semaphore_info = vk::SemaphoreCreateInfo::builder().build();
+        let semaphore_info = vk::SemaphoreCreateInfo::builder();
 
         let fence_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED)
-            .build();
+            .flags(vk::FenceCreateFlags::SIGNALED);
 
         let mut image_available_semaphores = Vec::new();
         let mut render_finished_semaphore = Vec::new();

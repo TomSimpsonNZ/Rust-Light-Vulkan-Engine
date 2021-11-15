@@ -1,17 +1,14 @@
 use ash::extensions::{
     ext::DebugUtils, // Read more about debugging here: https://www.lunarg.com/new-tutorial-for-vulkan-debug-utilities-extension/
     khr::{Surface, Swapchain},
-    khr::Win32Surface,
 };
 
 #[cfg(target_os="linux")]
 use ash::extensions::khr::XlibSurface;
 #[cfg(target_os="windows")]
-use ash::extensions::khr::XlibSurface;
+use ash::extensions::khr::Win32Surface;
 
 use ash::{vk, Device, Entry, Instance};
-
-use ash::version::{DeviceV1_0, EntryV1_0, InstanceV1_0};
 
 use ash_window;
 
@@ -211,8 +208,7 @@ impl LveDevice {
         let create_info = vk::BufferCreateInfo::builder()
             .size(size)
             .usage(usage)
-            .sharing_mode(vk::SharingMode::EXCLUSIVE)
-            .build();
+            .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
         let buffer = unsafe {
             self.device
@@ -228,8 +224,7 @@ impl LveDevice {
             .memory_type_index(
                 self.find_memory_type(mem_requirements.memory_type_bits, properties)
                     .unwrap(),
-            )
-            .build();
+            );
 
         let buffer_memory = unsafe {
             self.device
@@ -249,12 +244,11 @@ impl LveDevice {
         (buffer, buffer_memory)
     }
 
-    pub fn begin_single_time_commands(&self) -> vk::CommandBuffer {
+    pub fn _begin_single_time_commands(&self) -> vk::CommandBuffer {
         let alloc_info = vk::CommandBufferAllocateInfo::builder()
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_pool(self.command_pool)
-            .command_buffer_count(1)
-            .build();
+            .command_buffer_count(1);
 
         let command_buffer = unsafe {
             self.device
@@ -264,8 +258,7 @@ impl LveDevice {
         };
 
         let begin_info = vk::CommandBufferBeginInfo::builder()
-            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT)
-            .build();
+            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
         // Start the first (and only) command buffer
         unsafe {
@@ -278,7 +271,7 @@ impl LveDevice {
         command_buffer
     }
 
-    pub fn end_single_time_commands(&self, command_buffer: vk::CommandBuffer) {
+    pub fn _end_single_time_commands(&self, command_buffer: vk::CommandBuffer) {
         unsafe {
             self.device
                 .end_command_buffer(command_buffer)
@@ -287,12 +280,11 @@ impl LveDevice {
         };
 
         let submit_info = vk::SubmitInfo::builder()
-            .command_buffers(&[command_buffer])
-            .build();
+            .command_buffers(std::slice::from_ref(&command_buffer));
 
         unsafe {
             self.device
-                .queue_submit(self.graphics_queue, &[submit_info], vk::Fence::null())
+                .queue_submit(self.graphics_queue, std::slice::from_ref(&submit_info), vk::Fence::null())
                 .map_err(|e| log::error!("Unable to submit queue: {}", e))
                 .unwrap()
         };
@@ -310,29 +302,28 @@ impl LveDevice {
         };
     }
 
-    pub fn copy_buffer(
+    pub fn _copy_buffer(
         &self,
         src_buffer: vk::Buffer,
         dst_buffer: vk::Buffer,
         size: vk::DeviceSize,
     ) {
-        let command_buffer = self.begin_single_time_commands();
+        let command_buffer = self._begin_single_time_commands();
 
         let copy_region = vk::BufferCopy::builder()
             .src_offset(0)
             .dst_offset(0)
-            .size(size)
-            .build();
+            .size(size);
 
         unsafe {
             self.device
-                .cmd_copy_buffer(command_buffer, src_buffer, dst_buffer, &[copy_region])
+                .cmd_copy_buffer(command_buffer, src_buffer, dst_buffer, std::slice::from_ref(&copy_region))
         };
 
-        self.end_single_time_commands(command_buffer);
+        self._end_single_time_commands(command_buffer);
     }
 
-    pub fn copy_buffer_to_image(
+    pub fn _copy_buffer_to_image(
         &self,
         buffer: vk::Buffer,
         image: vk::Image,
@@ -340,7 +331,7 @@ impl LveDevice {
         height: u32,
         layer_count: u32,
     ) {
-        let command_buffer = self.begin_single_time_commands();
+        let command_buffer = self._begin_single_time_commands();
 
         let image_subresource_info = vk::ImageSubresourceLayers::builder()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -363,8 +354,7 @@ impl LveDevice {
             .buffer_image_height(0)
             .image_subresource(image_subresource_info)
             .image_offset(offset)
-            .image_extent(extent)
-            .build();
+            .image_extent(extent);
 
         unsafe {
             self.device.cmd_copy_buffer_to_image(
@@ -372,11 +362,11 @@ impl LveDevice {
                 buffer,
                 image,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &[region],
+                std::slice::from_ref(&region),
             )
         };
 
-        self.end_single_time_commands(command_buffer);
+        self._end_single_time_commands(command_buffer);
     }
 
     pub fn create_image_with_info(
@@ -398,8 +388,7 @@ impl LveDevice {
             .memory_type_index(
                 self.find_memory_type(mem_requirements.memory_type_bits, properties)
                     .unwrap(),
-            )
-            .build();
+            );
 
         let image_memory = unsafe {
             self.device
@@ -424,11 +413,10 @@ impl LveDevice {
 
         let app_info = vk::ApplicationInfo::builder()
             .application_name(app_name.as_c_str())
-            .application_version(vk::make_version(0, 1, 0))
+            .application_version(vk::make_api_version(0, 0, 1, 0))
             .engine_name(engine_name.as_c_str())
-            .engine_version(vk::make_version(0, 1, 0))
-            .api_version(vk::make_version(1, 0, 0))
-            .build();
+            .engine_version(vk::make_api_version(0, 0, 1, 0))
+            .api_version(vk::make_api_version(0, 1, 2, 176));
 
         let extensions = Self::get_required_extensions();
 
@@ -442,8 +430,6 @@ impl LveDevice {
             Self::check_validation_layer_support(entry);
             create_info = create_info.enabled_layer_names(&layer_name_ptrs);
         }
-
-        let create_info = create_info.build();
 
         unsafe {
             entry
@@ -465,8 +451,7 @@ impl LveDevice {
             .flags(vk::DebugUtilsMessengerCreateFlagsEXT::all())
             .message_severity(vk::DebugUtilsMessageSeverityFlagsEXT::all())
             .message_type(vk::DebugUtilsMessageTypeFlagsEXT::all())
-            .pfn_user_callback(Some(vulkan_debug_callback))
-            .build();
+            .pfn_user_callback(Some(vulkan_debug_callback));
 
         let debug_report = DebugUtils::new(entry, instance);
         let debug_report_callback = unsafe {
@@ -593,7 +578,7 @@ impl LveDevice {
 
         let (_, device_extensions_ptrs) = Self::get_device_extensions();
 
-        let mut create_info_builder = vk::DeviceCreateInfo::builder()
+        let mut create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queue_create_infos)
             .enabled_features(&physical_device_features)
             .enabled_extension_names(&device_extensions_ptrs);
@@ -601,10 +586,8 @@ impl LveDevice {
         let (_layer_names, layer_name_ptrs) = Self::get_enabled_layers();
 
         if ENABLE_VALIDATION_LAYERS {
-            create_info_builder = create_info_builder.enabled_layer_names(&layer_name_ptrs);
+            create_info = create_info.enabled_layer_names(&layer_name_ptrs);
         }
-
-        let create_info = create_info_builder.build();
 
         let device = unsafe {
             instance
@@ -635,8 +618,7 @@ impl LveDevice {
             .flags(
                 vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER
                     | vk::CommandPoolCreateFlags::TRANSIENT,
-            )
-            .build();
+            );
 
         unsafe {
             device

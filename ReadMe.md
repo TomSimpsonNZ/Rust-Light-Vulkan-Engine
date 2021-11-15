@@ -157,3 +157,19 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 command for enabling the logging functionality on linux. Sorry for anyone that got confused by that...
 - Updated `build.rs` to point to the correct directory and correct file name, as there is no such thing as a `.exe` in linux.
 - Linux uses a different window manager than windows, so the extensions need to be different.
+
+## Dangling Pointers
+- Dangling pointers have been an issue with this code for a while now and I've just sort of been ignoring them. However, now that I know what is causing them 
+I can implement a proper fix.
+- In Ash, when `.build()` is used on a builder, the lifetime information of the builder is lost, leading to dangling pointers. Because of this, `.build()` should be avoided where possible and
+the `Deref` implementation for the builders should be used. 
+    - `.build()` must be used if multiple structs are combined into a slice, as is the case in a few places. 
+    - For the cases where the vulkan functions require a slice of one element, then `std::slice::from_ref()` can be used to maintain the lifetime information of the struct.
+    More info on this can be found on the [ash crates.io page](https://crates.io/crates/ash/0.33.3+1.2.191).
+- The `default_pipline_config_info()` function is a bit tricky, since these builders are being passed into a struct, we have to use `build()`, otherwise the values will go out of scope
+leading to dangling references. For now I have used `Rc<T>` to solve this for the problematic builders, but a better solution should be found.
+
+## General
+- Minimizing the window would crash the program due to the check for the renderer being located in the `begin_frame()` function. 
+- Not a bug fix, but decided to upgrade to the latest version of ash. This doesn't seem to have any effect.
+- Removed most warnings as they were getting on my nerves :)
