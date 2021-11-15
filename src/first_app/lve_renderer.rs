@@ -55,6 +55,10 @@ impl LveRenderer {
         self.lve_swapchain.render_pass
     }
 
+    pub fn get_aspect_ratio(&self) -> f32 {
+        self.lve_swapchain.extent_aspect_ratio()
+    }
+
     pub fn begin_frame(&mut self, window: &Window) -> Option<vk::CommandBuffer> {
         assert!(
             !self.is_frame_started,

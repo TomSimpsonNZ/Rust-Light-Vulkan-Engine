@@ -226,10 +226,12 @@ impl LvePipeline {
             .alpha_blend_op(vk::BlendOp::ADD) // optional
             .build();
 
+        let color_blend_attachments = [color_blend_attachment];
+
         let color_blend_info = vk::PipelineColorBlendStateCreateInfo::builder()
             .logic_op_enable(false)
             .logic_op(vk::LogicOp::COPY) // optional
-            .attachments(&[color_blend_attachment])
+            .attachments(&color_blend_attachments)
             .blend_constants([0.0, 0.0, 0.0, 0.0]) // optional
             .build();
 

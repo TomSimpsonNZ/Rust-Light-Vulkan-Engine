@@ -5,12 +5,14 @@ mod lve_pipeline;
 mod lve_renderer;
 mod lve_swapchain;
 mod simple_render_system;
+mod lve_camera;
 
 use lve_device::*;
 use lve_game_object::*;
 use lve_model::*;
 use lve_renderer::*;
 use simple_render_system::*;
+use lve_camera::*;
 
 use winit::{
     dpi::LogicalSize,
@@ -19,7 +21,6 @@ use winit::{
 };
 
 use std::rc::Rc;
-use std::{f32::consts::PI, str::FromStr};
 
 extern crate nalgebra as na;
 
@@ -62,12 +63,17 @@ impl VulkanApp {
     }
 
     pub fn run(&mut self) {
+
+        let aspect = self.lve_renderer.get_aspect_ratio();
+        // self.camera = LveCamera::set_orthographic_projection(-aspect, aspect, -1.0, 1.0, -1.0, 1.0);
+        let camera = LveCamera::set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 10.0);
+
         match self.lve_renderer.begin_frame(&self.window) {
             Some(command_buffer) => {
                 self.lve_renderer
                     .begin_swapchain_render_pass(command_buffer);
                 self.simple_render_system
-                    .render_game_objects(command_buffer, &mut self.game_objects);
+                    .render_game_objects(command_buffer, &mut self.game_objects, &camera);
                 self.lve_renderer.end_swapchain_render_pass(command_buffer);
             }
             None => {}
@@ -99,7 +105,7 @@ impl VulkanApp {
         let lve_model = Self::create_cube_model(lve_device, na::vector![0.0, 0.0, 0.0]);
         
         let transform = Some(TransformComponent {
-            translation: na::vector![0.0, 0.0, 0.5],
+            translation: na::vector![0.0, 0.0, 2.5],
             scale: na::vector![0.5, 0.5, 0.5],
             rotation: na::vector![0.0, 0.0, 0.0],
         });

@@ -434,9 +434,11 @@ impl LveSwapchain {
             .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
             .build();
 
+        let attachment_refs = [color_attachment_ref];
+
         let subpass = vk::SubpassDescription::builder()
             .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-            .color_attachments(&[color_attachment_ref])
+            .color_attachments(&attachment_refs)
             .depth_stencil_attachment(&depth_attachment_ref)
             .build();
 

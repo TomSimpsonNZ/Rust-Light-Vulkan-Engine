@@ -1,6 +1,7 @@
 use super::lve_device::*;
 use super::lve_game_object::*;
 use super::lve_pipeline::*;
+use super::lve_camera::*;
 
 use ash::version::DeviceV1_0;
 use ash::{vk, Device};
@@ -107,15 +108,16 @@ impl SimpleRenderSystem {
         &mut self,
         command_buffer: vk::CommandBuffer,
         game_objects: &mut Vec<LveGameObject>,
+        camera: &LveCamera,
     ) {
         unsafe { self.lve_pipeline.bind(&self.lve_device.device, command_buffer) };
 
         for game_obj in game_objects.iter_mut() {
-            game_obj.transform.rotation[1] = game_obj.transform.rotation[1] + 0.01 % 2.0 * PI;
-            game_obj.transform.rotation[0] = game_obj.transform.rotation[0] + 0.005 % 2.0 * PI;
+            game_obj.transform.rotation[1] = game_obj.transform.rotation[1] + 0.001 % 2.0 * PI;
+            game_obj.transform.rotation[0] = game_obj.transform.rotation[0] + 0.0005 % 2.0 * PI;
 
             let push = SimplePushConstantData {
-                transform: Align16(game_obj.transform.mat4()),
+                transform: Align16(camera.projection_matrix * game_obj.transform.mat4()),
                 color: Align16(game_obj.color),
             };
 

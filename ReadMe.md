@@ -144,3 +144,7 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 
 # 12: Euler Angles & Homogeneous Coordinates ([Link](https://www.youtube.com/watch?v=0X_kRtyVzm4&ab_channel=BrendanGalea))
 - No big changes of note.
+
+# 13: Projection Matrices
+- No big changes of note.
+- Noticed a few bugs, program crashes when run in release mode. Once again there seems to be an issue with the ash builder patterns. Will look into this further.
