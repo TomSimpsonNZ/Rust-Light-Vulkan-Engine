@@ -244,7 +244,8 @@ impl LveDevice {
         (buffer, buffer_memory)
     }
 
-    pub fn _begin_single_time_commands(&self) -> vk::CommandBuffer {
+    #[allow(dead_code)]
+    pub fn begin_single_time_commands(&self) -> vk::CommandBuffer {
         let alloc_info = vk::CommandBufferAllocateInfo::builder()
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_pool(self.command_pool)
@@ -271,7 +272,8 @@ impl LveDevice {
         command_buffer
     }
 
-    pub fn _end_single_time_commands(&self, command_buffer: vk::CommandBuffer) {
+    #[allow(dead_code)]
+    pub fn end_single_time_commands(&self, command_buffer: vk::CommandBuffer) {
         unsafe {
             self.device
                 .end_command_buffer(command_buffer)
@@ -302,13 +304,14 @@ impl LveDevice {
         };
     }
 
-    pub fn _copy_buffer(
+    #[allow(dead_code)]
+    pub fn copy_buffer(
         &self,
         src_buffer: vk::Buffer,
         dst_buffer: vk::Buffer,
         size: vk::DeviceSize,
     ) {
-        let command_buffer = self._begin_single_time_commands();
+        let command_buffer = self.begin_single_time_commands();
 
         let copy_region = vk::BufferCopy::builder()
             .src_offset(0)
@@ -320,10 +323,11 @@ impl LveDevice {
                 .cmd_copy_buffer(command_buffer, src_buffer, dst_buffer, std::slice::from_ref(&copy_region))
         };
 
-        self._end_single_time_commands(command_buffer);
+        self.end_single_time_commands(command_buffer);
     }
 
-    pub fn _copy_buffer_to_image(
+    #[allow(dead_code)]
+    pub fn copy_buffer_to_image(
         &self,
         buffer: vk::Buffer,
         image: vk::Image,
@@ -331,7 +335,7 @@ impl LveDevice {
         height: u32,
         layer_count: u32,
     ) {
-        let command_buffer = self._begin_single_time_commands();
+        let command_buffer = self.begin_single_time_commands();
 
         let image_subresource_info = vk::ImageSubresourceLayers::builder()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -366,7 +370,7 @@ impl LveDevice {
             )
         };
 
-        self._end_single_time_commands(command_buffer);
+        self.end_single_time_commands(command_buffer);
     }
 
     pub fn create_image_with_info(

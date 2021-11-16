@@ -34,7 +34,8 @@ impl LveRenderer {
         }
     }
 
-    pub fn _get_frame_index(&self) -> usize {
+    #[allow(dead_code)]
+    pub fn get_frame_index(&self) -> usize {
         assert!(
             self.is_frame_started,
             "Cannot get frame index when frame is not in progress"

@@ -1,3 +1,4 @@
+mod lve_camera;
 mod lve_device;
 mod lve_game_object;
 mod lve_model;
@@ -5,14 +6,13 @@ mod lve_pipeline;
 mod lve_renderer;
 mod lve_swapchain;
 mod simple_render_system;
-mod lve_camera;
 
+use lve_camera::*;
 use lve_device::*;
 use lve_game_object::*;
 use lve_model::*;
 use lve_renderer::*;
 use simple_render_system::*;
-use lve_camera::*;
 
 use winit::{
     dpi::LogicalSize,
@@ -63,10 +63,13 @@ impl VulkanApp {
     }
 
     pub fn run(&mut self) {
-
         let aspect = self.lve_renderer.get_aspect_ratio();
         // self.camera = LveCamera::set_orthographic_projection(-aspect, aspect, -1.0, 1.0, -1.0, 1.0);
-        let camera = LveCamera::set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 10.0);
+        let camera = LveCameraBuilder::new()
+            .set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 10.0)
+            // .set_view_direction(na::Vector3::zeros(), na::vector![0.5, 0.0, 1.0], None)
+            .set_view_target(na::vector![-1.0, -2.0, 2.0], na::vector![0.0, 0.0, 2.5], None)
+            .build();
 
         let extent = LveRenderer::get_window_extent(&self.window);
 
@@ -78,8 +81,11 @@ impl VulkanApp {
             Some(command_buffer) => {
                 self.lve_renderer
                     .begin_swapchain_render_pass(command_buffer);
-                self.simple_render_system
-                    .render_game_objects(command_buffer, &mut self.game_objects, &camera);
+                self.simple_render_system.render_game_objects(
+                    command_buffer,
+                    &mut self.game_objects,
+                    &camera,
+                );
                 self.lve_renderer.end_swapchain_render_pass(command_buffer);
             }
             None => {}
@@ -109,7 +115,7 @@ impl VulkanApp {
 
     fn load_game_objects(lve_device: &Rc<LveDevice>) -> Vec<LveGameObject> {
         let lve_model = Self::create_cube_model(lve_device, na::vector![0.0, 0.0, 0.0]);
-        
+
         let transform = Some(TransformComponent {
             translation: na::vector![0.0, 0.0, 2.5],
             scale: na::vector![0.5, 0.5, 0.5],

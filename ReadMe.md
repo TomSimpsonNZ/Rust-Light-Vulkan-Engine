@@ -173,3 +173,6 @@ leading to dangling references. For now I have used `Rc<T>` to solve this for th
 - Minimizing the window would crash the program due to the check for the renderer being located in the `begin_frame()` function. 
 - Not a bug fix, but decided to upgrade to the latest version of ash. This doesn't seem to have any effect.
 - Removed most warnings as they were getting on my nerves :)
+
+# 14: Camera (View) Transform ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&t=10s&ab_channel=BrendanGalea))
+- Decided to make `LveCamera` follow the builder pattern. There's probably no advantage to this, just felt like trying it out :)

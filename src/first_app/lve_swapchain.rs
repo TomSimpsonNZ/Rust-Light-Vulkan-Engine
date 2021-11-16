@@ -100,7 +100,8 @@ impl LveSwapchain {
         }
     }
 
-    pub fn _image_count(&self) -> usize {
+    #[allow(dead_code)]
+    pub fn image_count(&self) -> usize {
         self._swapchain_images.len()
     }
 
