@@ -130,7 +130,7 @@ impl LveSwapchain {
         )
     }
 
-    pub unsafe fn acquire_next_image(&self, device: &Device) -> Result<(u32, bool), vk::Result> {
+    pub unsafe fn acquire_next_image(&mut self, device: &Device) -> Result<(u32, bool), vk::Result> {
         device
             .wait_for_fences(
                 &[self.in_flight_fences[self.current_frame]],

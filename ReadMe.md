@@ -176,3 +176,14 @@ leading to dangling references. For now I have used `Rc<T>` to solve this for th
 
 # 14: Camera (View) Transform ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&t=10s&ab_channel=BrendanGalea))
 - Decided to make `LveCamera` follow the builder pattern. There's probably no advantage to this, just felt like trying it out :)
+
+# 15: Game loops & User input ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&t=10s&ab_channel=BrendanGalea))
+- User input was not made very easy by winit, so I had to make a little work around to ensure that multiple keys can be pressed at the same time.
+- Timing was very tricky to get right as there are a few things with winit that I think were not made very clear. Firstly, the `MainEventsCleared` flag 
+is not occur as often as I would expect, so the frames were only drawn to the screen occasionally instead of (almost) every iteration of the events loop.
+This caused the camera to jump around seemingly randomly when moving and looking around. This also made it seem like the FIFO present mode was not working
+as the fps was well above the refresh rate of my monitor.
+- Moving the `run()` call to the empty section of the match statement fixed this issue, however it introduced many more issues, such as not being able to resize the 
+window and having large amounts of input lag for a short period after application startup in FIFO.
+- All of these issues are stemming from the way that winit handles window events and the main loop. The more I get into it the more I dislike it. After doing a bit of 
+research it seems that people are recommending SDL2 as a window manager. This will take a while to refactor though, so I'll get round to it when I have the time.

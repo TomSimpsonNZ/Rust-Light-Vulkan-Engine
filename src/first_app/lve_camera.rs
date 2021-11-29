@@ -90,11 +90,6 @@ impl LveCameraBuilder {
         target: na::Vector3<f32>,
         up: Option<na::Vector3<f32>>,
     ) -> &'a mut LveCameraBuilder {
-        let up = match up {
-            Some(v) => Some(v),
-            None => Some(na::vector![0.0, -1.0, 0.0]),
-        };
-
         self.set_view_direction(position, target - position, up)
     }
 

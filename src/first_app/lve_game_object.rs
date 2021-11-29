@@ -40,6 +40,7 @@ impl LveGameObject {
         color: Option<na::Vector3<f32>>,
         transform: Option<TransformComponent>,
     ) -> Self {
+
         let color = match color {
             Some(c) => c,
             None => na::vector![0.0, 0.0, 0.0],

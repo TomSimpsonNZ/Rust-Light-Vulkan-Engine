@@ -1,3 +1,4 @@
+mod keyboard_movement_controller;
 mod lve_camera;
 mod lve_device;
 mod lve_game_object;
@@ -7,6 +8,7 @@ mod lve_renderer;
 mod lve_swapchain;
 mod simple_render_system;
 
+use keyboard_movement_controller::*;
 use lve_camera::*;
 use lve_device::*;
 use lve_game_object::*;
@@ -15,10 +17,12 @@ use lve_renderer::*;
 use simple_render_system::*;
 
 use winit::{
-    dpi::LogicalSize,
+    dpi::{LogicalSize},
     event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
+
+use winit::event::VirtualKeyCode;
 
 use std::rc::Rc;
 
@@ -29,10 +33,12 @@ const HEIGHT: u32 = 600;
 const NAME: &str = "Hello Vulkan!";
 
 pub struct VulkanApp {
-    window: Window,
+    pub window: Window,
     lve_renderer: LveRenderer,
     simple_render_system: SimpleRenderSystem,
     game_objects: Vec<LveGameObject>,
+    viewer_object: LveGameObject,
+    camera_controller: KeyboardMovementController,
 }
 
 impl VulkanApp {
@@ -51,24 +57,56 @@ impl VulkanApp {
 
         let game_objects = Self::load_game_objects(&lve_device);
 
+        let viewer_object = LveGameObject::new(
+            LveModel::new_null(Rc::clone(&lve_device), "camera"),
+            None,
+            None,
+        );
+
+        let camera_controller = KeyboardMovementController::new(None, None);
+
         (
             Self {
                 window,
                 lve_renderer,
                 simple_render_system,
                 game_objects,
+                viewer_object,
+                camera_controller,
             },
             event_loop,
         )
     }
 
-    pub fn run(&mut self) {
+    pub fn run(
+        &mut self,
+        keys_pressed: &[VirtualKeyCode],
+        frame_time: f32,
+    ) {
+        // log::debug!("frame time: {}s", frame_time);
+        // log::debug!("Keys pressed: {:?}", keys_pressed);
+        log::debug!("fps: {:?}", 1.0/frame_time); // This is a bit shit :)
+
+        self.camera_controller.move_in_plane_xz(
+            keys_pressed,
+            frame_time,
+            &mut self.viewer_object,
+        );
+
         let aspect = self.lve_renderer.get_aspect_ratio();
         // self.camera = LveCamera::set_orthographic_projection(-aspect, aspect, -1.0, 1.0, -1.0, 1.0);
         let camera = LveCameraBuilder::new()
+            .set_view_xyz(
+                self.viewer_object.transform.translation,
+                self.viewer_object.transform.rotation,
+            )
             .set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 10.0)
             // .set_view_direction(na::Vector3::zeros(), na::vector![0.5, 0.0, 1.0], None)
-            .set_view_target(na::vector![-1.0, -2.0, 2.0], na::vector![0.0, 0.0, 2.5], None)
+            // .set_view_target(
+            //     na::vector![-1.0, -2.0, 2.0],
+            //     na::vector![0.0, 0.0, 2.5],
+            //     None,
+            // )
             .build();
 
         let extent = LveRenderer::get_window_extent(&self.window);

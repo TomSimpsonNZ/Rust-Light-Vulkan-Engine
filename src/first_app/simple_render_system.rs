@@ -5,7 +5,6 @@ use super::lve_camera::*;
 
 use ash::{vk, Device};
 
-use std::f32::consts::PI;
 use std::rc::Rc;
 
 extern crate nalgebra as na;
@@ -114,8 +113,6 @@ impl SimpleRenderSystem {
         let projection_view = camera.projection_matrix * camera.view_matrix;
 
         for game_obj in game_objects.iter_mut() {
-            game_obj.transform.rotation[1] = game_obj.transform.rotation[1] + 0.001 % 2.0 * PI;
-            game_obj.transform.rotation[0] = game_obj.transform.rotation[0] + 0.0005 % 2.0 * PI;
 
             let push = SimplePushConstantData {
                 transform: Align16(projection_view * game_obj.transform.mat4()),

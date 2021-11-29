@@ -67,6 +67,16 @@ impl LveModel {
         })
     }
 
+    pub fn new_null(lve_device: Rc<LveDevice>, name: &str) -> Rc<Self> {
+        Rc::new(Self {
+            lve_device,
+            vertex_buffer: vk::Buffer::null(),
+            vertex_buffer_memory: vk::DeviceMemory::null(),
+            vertex_count: 0,
+            name: String::from_str(name).unwrap(),
+        })
+    }
+
     pub unsafe fn draw(&self, device: &Device, command_buffer: vk::CommandBuffer) {
         device.cmd_draw(command_buffer, self.vertex_count, 1, 0, 0);
     }
