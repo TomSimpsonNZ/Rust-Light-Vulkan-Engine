@@ -196,3 +196,7 @@ Finally got some time to work on this again!
 
 - Made a better fps counter and made it print to the window title to clear up the log.
 - Reformatted all the files to make them look nice and pretty.
+
+# 16: Index and Staging Buffers ([Link](https://www.youtube.com/watch?v=qxuvQVtehII))
+- Renamed the `Builder` struct to `ModelData` and `create_index_buffers()` to `create_index_buffer()` as per Brendan's recomendations in the comments
+- Made the indices field of `ModelData` an option to be more in line with Rust's syntax
