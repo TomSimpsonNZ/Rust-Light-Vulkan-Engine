@@ -3,10 +3,10 @@ use ash::extensions::{
     khr::{Surface, Swapchain},
 };
 
-#[cfg(target_os="linux")]
-use ash::extensions::khr::XlibSurface;
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 use ash::extensions::khr::Win32Surface;
+#[cfg(target_os = "linux")]
+use ash::extensions::khr::XlibSurface;
 
 use ash::{vk, Device, Entry, Instance};
 
@@ -281,12 +281,16 @@ impl LveDevice {
                 .unwrap()
         };
 
-        let submit_info = vk::SubmitInfo::builder()
-            .command_buffers(std::slice::from_ref(&command_buffer));
+        let submit_info =
+            vk::SubmitInfo::builder().command_buffers(std::slice::from_ref(&command_buffer));
 
         unsafe {
             self.device
-                .queue_submit(self.graphics_queue, std::slice::from_ref(&submit_info), vk::Fence::null())
+                .queue_submit(
+                    self.graphics_queue,
+                    std::slice::from_ref(&submit_info),
+                    vk::Fence::null(),
+                )
                 .map_err(|e| log::error!("Unable to submit queue: {}", e))
                 .unwrap()
         };
@@ -319,8 +323,12 @@ impl LveDevice {
             .size(size);
 
         unsafe {
-            self.device
-                .cmd_copy_buffer(command_buffer, src_buffer, dst_buffer, std::slice::from_ref(&copy_region))
+            self.device.cmd_copy_buffer(
+                command_buffer,
+                src_buffer,
+                dst_buffer,
+                std::slice::from_ref(&copy_region),
+            )
         };
 
         self.end_single_time_commands(command_buffer);
@@ -425,9 +433,9 @@ impl LveDevice {
         let extensions = Self::get_required_extensions();
 
         let mut create_info = vk::InstanceCreateInfo::builder()
-        .application_info(&app_info)
-        .enabled_extension_names(&extensions);
-        
+            .application_info(&app_info)
+            .enabled_extension_names(&extensions);
+
         let (_layer_names, layer_name_ptrs) = Self::get_enabled_layers();
 
         if ENABLE_VALIDATION_LAYERS {
@@ -637,9 +645,9 @@ impl LveDevice {
 
         extensions.push(Surface::name().as_ptr());
 
-        #[cfg(target_os="windows")]
+        #[cfg(target_os = "windows")]
         extensions.push(Win32Surface::name().as_ptr());
-        #[cfg(target_os="linux")]
+        #[cfg(target_os = "linux")]
         extensions.push(XlibSurface::name().as_ptr());
 
         if ENABLE_VALIDATION_LAYERS {
@@ -819,19 +827,19 @@ impl Drop for LveDevice {
         unsafe {
             // log::debug!("Destroying command pool");
             self.device.destroy_command_pool(self.command_pool, None);
-    
+
             // log::debug!("Destroying device");
             self.device.destroy_device(None);
-    
+
             // log::debug!("Destroying surface");
             self.surface.destroy_surface(self.surface_khr, None);
-    
+
             // log::debug!("Destroying debug messenger");
             // Destroy the Debug messenger
             if let Some((report, callback)) = self.debug_messenger.take() {
                 report.destroy_debug_utils_messenger(callback, None);
             }
-    
+
             // log::debug!("Destroying instance");
             self.instance.destroy_instance(None);
         }

@@ -130,7 +130,10 @@ impl LveSwapchain {
         )
     }
 
-    pub unsafe fn acquire_next_image(&mut self, device: &Device) -> Result<(u32, bool), vk::Result> {
+    pub unsafe fn acquire_next_image(
+        &mut self,
+        device: &Device,
+    ) -> Result<(u32, bool), vk::Result> {
         device
             .wait_for_fences(
                 &[self.in_flight_fences[self.current_frame]],
@@ -156,7 +159,6 @@ impl LveSwapchain {
         buffer: vk::CommandBuffer,
         image_index: usize,
     ) -> Result<bool, vk::Result> {
-
         if self.images_in_flight[image_index] != vk::Fence::null() {
             unsafe {
                 device
@@ -511,8 +513,7 @@ impl LveSwapchain {
     ) {
         let semaphore_info = vk::SemaphoreCreateInfo::builder();
 
-        let fence_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED);
+        let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
 
         let mut image_available_semaphores = Vec::new();
         let mut render_finished_semaphore = Vec::new();

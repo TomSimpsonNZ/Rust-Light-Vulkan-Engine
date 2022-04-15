@@ -1,7 +1,7 @@
+use super::lve_camera::*;
 use super::lve_device::*;
 use super::lve_game_object::*;
 use super::lve_pipeline::*;
-use super::lve_camera::*;
 
 use ash::{vk, Device};
 
@@ -51,7 +51,8 @@ impl SimpleRenderSystem {
     pub fn new(lve_device: Rc<LveDevice>, render_pass: &vk::RenderPass) -> Self {
         let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
 
-        let lve_pipeline = Self::create_pipeline(Rc::clone(&lve_device), render_pass, &pipeline_layout);
+        let lve_pipeline =
+            Self::create_pipeline(Rc::clone(&lve_device), render_pass, &pipeline_layout);
 
         Self {
             lve_device,
@@ -108,12 +109,14 @@ impl SimpleRenderSystem {
         game_objects: &mut Vec<LveGameObject>,
         camera: &LveCamera,
     ) {
-        unsafe { self.lve_pipeline.bind(&self.lve_device.device, command_buffer) };
+        unsafe {
+            self.lve_pipeline
+                .bind(&self.lve_device.device, command_buffer)
+        };
 
         let projection_view = camera.projection_matrix * camera.view_matrix;
 
         for game_obj in game_objects.iter_mut() {
-
             let push = SimplePushConstantData {
                 transform: Align16(projection_view * game_obj.transform.mat4()),
                 color: Align16(game_obj.color),
@@ -142,7 +145,9 @@ impl Drop for SimpleRenderSystem {
         log::debug!("Dropping SimpleRenderSystem");
 
         unsafe {
-            self.lve_device.device.destroy_pipeline_layout(self.pipeline_layout, None);
+            self.lve_device
+                .device
+                .destroy_pipeline_layout(self.pipeline_layout, None);
         }
     }
 }

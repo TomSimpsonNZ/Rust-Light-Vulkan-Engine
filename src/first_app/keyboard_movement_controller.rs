@@ -50,8 +50,7 @@ impl KeyboardMovementController {
         } // look down
 
         if rotate.dot(&rotate) > EPSILON {
-            game_object.transform.rotation +=
-                self.look_speed * dt * rotate.normalize();
+            game_object.transform.rotation += self.look_speed * dt * rotate.normalize();
         }
 
         game_object.transform.rotation[0] = game_object.transform.rotation[0].clamp(-1.5, 1.5);
@@ -84,8 +83,7 @@ impl KeyboardMovementController {
         } // move down
 
         if move_dir.dot(&move_dir) > EPSILON {
-            game_object.transform.translation +=
-                self.move_speed * dt * move_dir.normalize();
+            game_object.transform.translation += self.move_speed * dt * move_dir.normalize();
         }
     }
 }

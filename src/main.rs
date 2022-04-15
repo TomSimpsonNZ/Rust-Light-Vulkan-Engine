@@ -1,10 +1,12 @@
 mod first_app;
+mod fps_counter;
 
 use first_app::*;
+use fps_counter::FPSCounter;
 
 use winit::{
-    dpi::{PhysicalSize},
-    event::{Event, WindowEvent, ElementState, VirtualKeyCode},
+    dpi::PhysicalSize,
+    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::ControlFlow,
 };
 
@@ -15,13 +17,15 @@ fn main() {
     env_logger::init();
 
     // Create the application and events loop
-    let ( mut vulkan_app, event_loop) = VulkanApp::new();
+    let (mut vulkan_app, event_loop) = VulkanApp::new();
 
     log::debug!("Running Application");
 
     let mut current_time = Instant::now();
 
     let mut keys_pressed: Vec<VirtualKeyCode> = Vec::new();
+
+    let mut fps_counter = FPSCounter::new(100);
 
     // Begin the events loop
     event_loop.run(move |event, _, control_flow| {
@@ -67,9 +71,9 @@ fn main() {
                             }
                             ElementState::Released => {
                                 let index = keys_pressed
-                                .iter()
-                                .position(|key| *key == input_key)
-                                .unwrap();
+                                    .iter()
+                                    .position(|key| *key == input_key)
+                                    .unwrap();
                                 keys_pressed.remove(index);
                             }
                         };
@@ -79,14 +83,18 @@ fn main() {
             }
             Event::MainEventsCleared => {
                 app.window.request_redraw();
-            },
+            }
             Event::RedrawRequested(_window_id) => {
-                let frame_time = current_time.elapsed().as_secs_f32();
-                app.run(&keys_pressed, frame_time);
+                let time_since_last_frame = current_time.elapsed().as_secs_f32();
                 current_time = Instant::now();
+                app.run(&keys_pressed, time_since_last_frame);
+                let window_title = format!(
+                    "HELLO VULAKN | fps: {}",
+                    fps_counter.tick(time_since_last_frame)
+                );
+                app.window.set_title(&window_title);
             }
             _ => (),
         };
-
     });
 }

@@ -187,3 +187,12 @@ as the fps was well above the refresh rate of my monitor.
 window and having large amounts of input lag for a short period after application startup in FIFO.
 - All of these issues are stemming from the way that winit handles window events and the main loop. The more I get into it the more I dislike it. After doing a bit of 
 research it seems that people are recommending SDL2 as a window manager. This will take a while to refactor though, so I'll get round to it when I have the time.
+
+# Bug Fixes
+Finally got some time to work on this again!
+- The more observant of you might have noticed the reason for all my errors in the previous commit. I was measuring the frame time from after the frame was rendered and presented to the window. This meant that in the FIFO present mode, the render call would block to ensure that the frame rate was 144Hz in my case. So each frame was actually taking significantly longer than what the timer would indicate, meaning the camera movement was significantly slowed down. Moving the refresh of `current_time` to before the draw call fixed all the issues, no need to change windowing API!
+
+=> I am a bit silly :)
+
+- Made a better fps counter and made it print to the window title to clear up the log.
+- Reformatted all the files to make them look nice and pretty.

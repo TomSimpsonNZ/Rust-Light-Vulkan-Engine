@@ -21,7 +21,7 @@ impl TransformComponent {
         let s1 = self.rotation[1].sin();
 
         na::matrix!(self.scale[0] * (c1 * c3 + s1 * s2 * s3), self.scale[1] * (c3 * s1 * s2 - c1 * s3), self.scale[2] * (c2 * s1), self.translation[0];
-                    self.scale[0] * (c2 * s3)               , self.scale[1] * (c2 * c3)                , self.scale[2] * (-s2)    , self.translation[1];
+                    self.scale[0] * (c2 * s3)               , self.scale[1] * (c2 * c3)               , self.scale[2] * (-s2)    , self.translation[1];
                     self.scale[0] * (c1 * s2 * s3 - c3 * s1), self.scale[1] * (c1 * c3 * s2 + s1 * s3), self.scale[2] * (c1 * c2), self.translation[2];
                     0.0                                     , 0.0                                     , 0.0                      , 1.0;
                 )

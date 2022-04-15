@@ -94,23 +94,27 @@ impl LvePipeline {
             .scissor_count(1)
             .build();
 
-        let color_blend_attachment = Rc::new(vk::PipelineColorBlendAttachmentState::builder()
-            .color_write_mask(vk::ColorComponentFlags::all())
-            .blend_enable(false)
-            .src_color_blend_factor(vk::BlendFactor::ONE) // optional
-            .dst_color_blend_factor(vk::BlendFactor::ZERO) // optional
-            .color_blend_op(vk::BlendOp::ADD) // optional
-            .src_alpha_blend_factor(vk::BlendFactor::ONE) // optional
-            .dst_alpha_blend_factor(vk::BlendFactor::ZERO) // optional
-            .alpha_blend_op(vk::BlendOp::ADD)
-            .build()); // optional
+        let color_blend_attachment = Rc::new(
+            vk::PipelineColorBlendAttachmentState::builder()
+                .color_write_mask(vk::ColorComponentFlags::all())
+                .blend_enable(false)
+                .src_color_blend_factor(vk::BlendFactor::ONE) // optional
+                .dst_color_blend_factor(vk::BlendFactor::ZERO) // optional
+                .color_blend_op(vk::BlendOp::ADD) // optional
+                .src_alpha_blend_factor(vk::BlendFactor::ONE) // optional
+                .dst_alpha_blend_factor(vk::BlendFactor::ZERO) // optional
+                .alpha_blend_op(vk::BlendOp::ADD)
+                .build(),
+        ); // optional
 
-        let color_blend_info = Rc::new(vk::PipelineColorBlendStateCreateInfo::builder()
-            .logic_op_enable(false)
-            .logic_op(vk::LogicOp::COPY) // optional
-            .attachments(std::slice::from_ref(&color_blend_attachment))
-            .blend_constants([0.0, 0.0, 0.0, 0.0])
-            .build()); // optional
+        let color_blend_info = Rc::new(
+            vk::PipelineColorBlendStateCreateInfo::builder()
+                .logic_op_enable(false)
+                .logic_op(vk::LogicOp::COPY) // optional
+                .attachments(std::slice::from_ref(&color_blend_attachment))
+                .blend_constants([0.0, 0.0, 0.0, 0.0])
+                .build(),
+        ); // optional
 
         let depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo::builder()
             .depth_test_enable(true)
@@ -230,7 +234,11 @@ impl LvePipeline {
 
         let graphics_pipeline = unsafe {
             device
-                .create_graphics_pipelines(vk::PipelineCache::null(), std::slice::from_ref(&pipeline_info), None)
+                .create_graphics_pipelines(
+                    vk::PipelineCache::null(),
+                    std::slice::from_ref(&pipeline_info),
+                    None,
+                )
                 .map_err(|e| log::error!("Unable to create graphics pipeline: {:?}", e))
                 .unwrap()[0]
         };
@@ -255,9 +263,15 @@ impl Drop for LvePipeline {
         log::debug!("Dropping pipeline");
 
         unsafe {
-            self.lve_device.device.destroy_shader_module(self.vert_shader_module, None);
-            self.lve_device.device.destroy_shader_module(self.frag_shader_module, None);
-            self.lve_device.device.destroy_pipeline(self.graphics_pipeline, None);
+            self.lve_device
+                .device
+                .destroy_shader_module(self.vert_shader_module, None);
+            self.lve_device
+                .device
+                .destroy_shader_module(self.frag_shader_module, None);
+            self.lve_device
+                .device
+                .destroy_pipeline(self.graphics_pipeline, None);
         }
     }
 }

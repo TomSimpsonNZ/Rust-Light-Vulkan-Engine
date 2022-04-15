@@ -131,8 +131,12 @@ impl Drop for LveModel {
     fn drop(&mut self) {
         log::debug!("Dropping Model: {}", self.name);
         unsafe {
-            self.lve_device.device.destroy_buffer(self.vertex_buffer, None);
-            self.lve_device.device.free_memory(self.vertex_buffer_memory, None);
+            self.lve_device
+                .device
+                .destroy_buffer(self.vertex_buffer, None);
+            self.lve_device
+                .device
+                .free_memory(self.vertex_buffer_memory, None);
         }
     }
 }

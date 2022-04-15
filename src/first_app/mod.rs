@@ -17,7 +17,7 @@ use lve_renderer::*;
 use simple_render_system::*;
 
 use winit::{
-    dpi::{LogicalSize},
+    dpi::LogicalSize,
     event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
@@ -78,20 +78,13 @@ impl VulkanApp {
         )
     }
 
-    pub fn run(
-        &mut self,
-        keys_pressed: &[VirtualKeyCode],
-        frame_time: f32,
-    ) {
+    pub fn run(&mut self, keys_pressed: &[VirtualKeyCode], frame_time: f32) {
         // log::debug!("frame time: {}s", frame_time);
         // log::debug!("Keys pressed: {:?}", keys_pressed);
-        log::debug!("fps: {:?}", 1.0/frame_time); // This is a bit shit :)
+        // log::debug!("fps: {:?}", 1.0/frame_time); // This is a bit shit :)
 
-        self.camera_controller.move_in_plane_xz(
-            keys_pressed,
-            frame_time,
-            &mut self.viewer_object,
-        );
+        self.camera_controller
+            .move_in_plane_xz(keys_pressed, frame_time, &mut self.viewer_object);
 
         let aspect = self.lve_renderer.get_aspect_ratio();
         // self.camera = LveCamera::set_orthographic_projection(-aspect, aspect, -1.0, 1.0, -1.0, 1.0);
