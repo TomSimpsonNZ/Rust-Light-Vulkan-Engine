@@ -50,7 +50,7 @@ for translating Alex's tutorial, a bunch of this code was yoinked from [that rep
 for the shell script presented in the video.
 - "We're about half way to seeing our first triangle on screen"... I've never heard a more blatant lie.
 
-# 3: Device Setup & Pipeline cont. ([link](https://www.youtube.com/watch?v=LYKlEIzGmW4&t=3s&ab_channel=BrendanGalea))
+# 3: Device Setup & Pipeline cont. ([link](https://www.youtube.com/watch?v=LYKlEIzGmW4&ab_channel=BrendanGalea))
 - Due to the nature of Rust, a lot of the functions that were `void` in the tutorial now return things. This is so we can properly initialise the `LveDevice` struct by allowing the functions to borrow these Vulkan structs.
 - `device_extensions` does is not a global constant anymore as ash requires the extension names to be given by a functions, and hence can't be stored in a constant. It can now be found in the `LveDevice::get_device_extensions()` function.
 - Due to the lack of lve_window module, it was more convenient to use the `create_surface()` function from the [ash-window](https://docs.rs/ash-window/0.7.0/ash_window/) crate in the `LveDevice::create_surface()` function.
@@ -67,7 +67,7 @@ can be unsafe as the device needs to be destroyed after the pipeline. In Rust, i
 - Some pipeline builder functions were commented out as they were optional and required null pointers, something I'm not sure is implemented in rust.
 - Pipeline destructor function was already implemented in the previous commit.
 
-# 5.1: Swap Chain Overview ([link](https://www.youtube.com/watch?v=IUYH74MqxOA&t=238s&ab_channel=BrendanGalea))
+# 5.1: Swap Chain Overview ([link](https://www.youtube.com/watch?v=IUYH74MqxOA&ab_channel=BrendanGalea))
 - Architecture change made in tutorial 3 commit was once again changed, as an approach more similar to that given by the tutorial was found. The `lve_device`, `lve_swapchain`, and `lve_pipeline` are all now owned by the application.
 The conflicting issue in tutorial 3 was the destruction of the Vulkan objects, which most of the time require a reference to the device. By making the application handle the destruction of everything when the struct is dropped, we can pass the device to the other modules without having any cyclical linking trees.
     - Each struct now has a ` pub unsafe fn destroy()` function that handles the destruction of its fields.
@@ -77,7 +77,7 @@ The conflicting issue in tutorial 3 was the destruction of the Vulkan objects, w
 - Some reformatting was done (witch should have been done during the other commits). This was done using rusts inbuilt formatter, so should not be too hard to replicate
 - My machine is currently giving validation errors at the end of this tutorial. For now I will leave this issue to see if fully implementing everything in the next tutorial fixes the issue, if not then there will be another commit with a fix (hopefully)
 
-# 5.2: Command Buffers Overview ([link](https://www.youtube.com/watch?v=_VOR6q3edig&t=4s&ab_channel=BrendanGalea))
+# 5.2: Command Buffers Overview ([link](https://www.youtube.com/watch?v=_VOR6q3edig&ab_channel=BrendanGalea))
 - The validation errors from the previous tutorial have not disappeared. Will look into it more.
 - The triangle also does not display color correctly, being a dark maroon when it's supposed to be red, 
 and bright green when the other color values are set to 1.0 in the fragment shader file. This is probably linked to the validation errors.
@@ -91,11 +91,11 @@ memory being read which caused strange errors.
 - To solve this, the `color_blend_attachment` and `color_blend_info` struct definitions were moved to the `LvePipeline::create_graphics_pipeline()` function so that they would never leave scope.
 - This seems to be an issue with `ash`, might be solved in more recent versions. 
 
-# 6: Vertex Buffers ([link](https://www.youtube.com/watch?v=mnKp501RXDc&t=195s&ab_channel=BrendanGalea))
+# 6: Vertex Buffers ([link](https://www.youtube.com/watch?v=mnKp501RXDc&ab_channel=BrendanGalea))
 - No changes of note from the tutorial
 - A solution to the exercise in the video can be found in the fork.
 
-# 7: Fragment Interpolation ([link](https://www.youtube.com/watch?v=ngoZZkMuCOM&t=12s&ab_channel=BrendanGalea))
+# 7: Fragment Interpolation ([link](https://www.youtube.com/watch?v=ngoZZkMuCOM&ab_channel=BrendanGalea))
 - They is no rust equivalent of `offsetof()` that I am aware of at this point in time. So a workaround was used that is only slightly better than just hard coding in an offset of 8 bytes :).
 - I also decided to finally remove the drop implementation for the `lve_*` sub-modules. They weren't really doing anything.
 
@@ -129,7 +129,7 @@ only aligns the whole struct and not it's fields, I had to get a bit creative. B
 - Also decided to make the type declaration for `Pos` and `Color` and so on module specific to avoid alignment weirdness, but this could become confusing.
 - Will fork the cool animation.
 
-# 11: Renderer & Systems ([link](https://www.youtube.com/watch?v=uGRSTRGlZVs&t=1257s&ab_channel=BrendanGalea))
+# 11: Renderer & Systems ([link](https://www.youtube.com/watch?v=uGRSTRGlZVs&ab_channel=BrendanGalea))
 - No big changes of note.
 - Will fork the gravity simulation.
 
@@ -174,10 +174,10 @@ leading to dangling references. For now I have used `Rc<T>` to solve this for th
 - Not a bug fix, but decided to upgrade to the latest version of ash. This doesn't seem to have any effect.
 - Removed most warnings as they were getting on my nerves :)
 
-# 14: Camera (View) Transform ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&t=10s&ab_channel=BrendanGalea))
+# 14: Camera (View) Transform ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&ab_channel=BrendanGalea))
 - Decided to make `LveCamera` follow the builder pattern. There's probably no advantage to this, just felt like trying it out :)
 
-# 15: Game loops & User input ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&t=10s&ab_channel=BrendanGalea))
+# 15: Game loops & User input ([Link](https://www.youtube.com/watch?v=rvJHkYnAR3w&ab_channel=BrendanGalea))
 - User input was not made very easy by winit, so I had to make a little work around to ensure that multiple keys can be pressed at the same time.
 - Timing was very tricky to get right as there are a few things with winit that I think were not made very clear. Firstly, the `MainEventsCleared` flag 
 is not occur as often as I would expect, so the frames were only drawn to the screen occasionally instead of (almost) every iteration of the events loop.
@@ -200,3 +200,11 @@ Finally got some time to work on this again!
 # 16: Index and Staging Buffers ([Link](https://www.youtube.com/watch?v=qxuvQVtehII))
 - Renamed the `Builder` struct to `ModelData` and `create_index_buffers()` to `create_index_buffer()` as per Brendan's recomendations in the comments
 - Made the indices field of `ModelData` an option to be more in line with Rust's syntax
+
+# 17: Loading 3D Models ([Link](https://www.youtube.com/watch?v=jdiPVfIHmEA))
+- Used the [tobj](https://docs.rs/tobj/latest/tobj/) crate to do the object loading. Is supposedly based off tinyobjectloader, but there are a few differences.
+- To be able to hash the `Vertex` type, I needed to implement the `Hash` trait for `f32`. This is not possible in rust by default, so used the [oredered-float](https://docs.rs/ordered-float/latest/ordered_float/index.html) crate to work around this. Defined a new type `Hf32` to save typing
+- Rust already handles the combination of hash values using `std::hash::Hasher`, so the `hash_combine()` function is useless, all we need to do is implement the `Hash` trait for the `Vertex` type, then call `Vertex::hash(&mut hasher)` when we need it.
+- No such thing as operator overloading in Rust, instead you implement traits. The equivalent to overloading the `==` operator is to implement the trait `PartialEq` for the type. 
+- I don't think you can implement a trait to give the same effect as overloading the `()` operator like Brendan does in the video, so instead we will just call `vertex.hash()`
+- Since we build the vertices Vec after the iterator, we cannot use the same method for storing the index in the `HashMap` as the video. Instead we will just make a counter that will increment every time there is a new unique vertex. This should also be faster as well :)
