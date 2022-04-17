@@ -39,20 +39,34 @@ impl Vertex {
     }
 
     pub fn get_attribute_descriptions() -> Vec<vk::VertexInputAttributeDescription> {
-        vec![
-            vk::VertexInputAttributeDescription::builder()
-                .binding(0)
-                .location(0)
-                .format(vk::Format::R32G32B32_SFLOAT)
-                .offset(0)
-                .build(),
-            vk::VertexInputAttributeDescription::builder()
-                .binding(0)
-                .location(1)
-                .format(vk::Format::R32G32B32_SFLOAT)
-                .offset(size_of::<Pos>() as u32) // Using size of the position field
-                .build(),
-        ]
+        let mut attribute_descriptions: Vec<vk::VertexInputAttributeDescription> = Vec::new();
+
+        attribute_descriptions.push(vk::VertexInputAttributeDescription {
+            location: 0,
+            binding: 0,
+            format: vk::Format::R32G32B32_SFLOAT,
+            offset: 0,
+        });
+        attribute_descriptions.push(vk::VertexInputAttributeDescription {
+            location: 1,
+            binding: 0,
+            format: vk::Format::R32G32B32_SFLOAT,
+            offset: size_of::<Pos>() as u32,
+        });
+        attribute_descriptions.push(vk::VertexInputAttributeDescription {
+            location: 2,
+            binding: 0,
+            format: vk::Format::R32G32B32_SFLOAT,
+            offset: (size_of::<Pos>() + size_of::<Color>()) as u32,
+        });
+        attribute_descriptions.push(vk::VertexInputAttributeDescription {
+            location: 3,
+            binding: 0,
+            format: vk::Format::R32G32_SFLOAT,
+            offset: (size_of::<Pos>() + size_of::<Color>() + size_of::<Normal>()) as u32,
+        });
+
+        attribute_descriptions
     }
 }
 
@@ -78,7 +92,10 @@ impl ModelData {
             .iter()
             .map(|model| {
                 let positions = &model.mesh.positions;
-                let colors = &model.mesh.vertex_color;
+                let colors = match &model.mesh.vertex_color.as_slice() {
+                    [] => vec![1_f32; positions.len()],
+                    v => v.to_vec(),
+                };
                 let normals = &model.mesh.normals;
                 let uvs = &model.mesh.texcoords;
                 model
@@ -92,20 +109,11 @@ impl ModelData {
                                 OrderedFloat(positions[(3 * index + 1) as usize]),
                                 OrderedFloat(positions[(3 * index + 2) as usize])
                             ],
-                            color: match colors.as_slice() {
-                                [] => {
-                                    na::vector![
-                                        OrderedFloat(1.0),
-                                        OrderedFloat(1.0),
-                                        OrderedFloat(1.0)
-                                    ]
-                                }
-                                c => na::vector![
-                                    OrderedFloat(c[(3 * index + 0) as usize]),
-                                    OrderedFloat(c[(3 * index + 1) as usize]),
-                                    OrderedFloat(c[(3 * index + 2) as usize])
-                                ],
-                            },
+                            color: na::vector![
+                                OrderedFloat(colors[(3 * index + 0) as usize]),
+                                OrderedFloat(colors[(3 * index + 1) as usize]),
+                                OrderedFloat(colors[(3 * index + 2) as usize])
+                            ],
                             normal: na::vector![
                                 OrderedFloat(normals[(3 * index + 0) as usize]),
                                 OrderedFloat(normals[(3 * index + 1) as usize]),

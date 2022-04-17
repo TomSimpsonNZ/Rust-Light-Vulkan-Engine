@@ -208,3 +208,6 @@ Finally got some time to work on this again!
 - No such thing as operator overloading in Rust, instead you implement traits. The equivalent to overloading the `==` operator is to implement the trait `PartialEq` for the type. 
 - I don't think you can implement a trait to give the same effect as overloading the `()` operator like Brendan does in the video, so instead we will just call `vertex.hash()`
 - Since we build the vertices Vec after the iterator, we cannot use the same method for storing the index in the `HashMap` as the video. Instead we will just make a counter that will increment every time there is a new unique vertex. This should also be faster as well :)
+
+# 18: Diffuse Shading ([Link](https://www.youtube.com/watch?v=wfh2N4u-nOU))
+- We don't have the same issue as Brendan in regards to the color vector, as it is either filled with values or empty. But his fix did inspire a small optimisation.

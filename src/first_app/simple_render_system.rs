@@ -13,13 +13,13 @@ extern crate nalgebra as na;
 #[derive(Debug, Clone, Copy)]
 pub struct Align16<T>(pub T);
 
-type Color = Align16<na::Vector3<f32>>;
 type Transform = Align16<na::Matrix4<f32>>;
+type NormalMatrix = Align16<na::Matrix4<f32>>;
 
 #[derive(Debug)]
 pub struct SimplePushConstantData {
     transform: Transform,
-    color: Color,
+    normal_matrix: NormalMatrix,
 }
 
 impl SimplePushConstantData {
@@ -117,9 +117,10 @@ impl SimpleRenderSystem {
         let projection_view = camera.projection_matrix * camera.view_matrix;
 
         for game_obj in game_objects.iter_mut() {
+            let model_matrix = game_obj.transform.mat4();
             let push = SimplePushConstantData {
-                transform: Align16(projection_view * game_obj.transform.mat4()),
-                color: Align16(game_obj.color),
+                transform: Align16(projection_view * model_matrix),
+                normal_matrix: Align16(game_obj.transform.normal_matrix()),
             };
 
             unsafe {

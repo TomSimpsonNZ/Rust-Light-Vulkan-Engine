@@ -145,16 +145,31 @@ impl VulkanApp {
     }
 
     fn load_game_objects(lve_device: &Rc<LveDevice>) -> Vec<LveGameObject> {
-        let lve_model =
+        let mut game_objects: Vec<LveGameObject> = Vec::new();
+
+        let smooth_vase =
             LveModel::create_model_from_file(Rc::clone(lve_device), "models/smooth_vase.obj");
 
         let transform = Some(TransformComponent {
-            translation: na::vector![0.0, 0.0, 2.5],
+            translation: na::vector![-0.5, 0.5, 2.5],
             scale: na::vector![3.0, 3.0, 3.0],
             rotation: na::vector![0.0, 0.0, 0.0],
         });
 
-        vec![LveGameObject::new(lve_model, None, transform)]
+        game_objects.push(LveGameObject::new(smooth_vase, None, transform));
+
+        let flat_vase =
+            LveModel::create_model_from_file(Rc::clone(lve_device), "models/flat_vase.obj");
+
+        let transform = Some(TransformComponent {
+            translation: na::vector![0.5, 0.5, 2.5],
+            scale: na::vector![3.0, 3.0, 3.0],
+            rotation: na::vector![0.0, 0.0, 0.0],
+        });
+
+        game_objects.push(LveGameObject::new(flat_vase, None, transform));
+
+        game_objects
     }
 }
 
