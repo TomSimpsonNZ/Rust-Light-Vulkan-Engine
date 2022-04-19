@@ -1,8 +1,8 @@
 use super::lve_camera::*;
 use super::lve_device::*;
+use super::lve_frameinfo::FrameInfo;
 use super::lve_game_object::*;
 use super::lve_pipeline::*;
-use super::lve_frameinfo::FrameInfo;
 
 use ash::{vk, Device};
 
@@ -134,8 +134,12 @@ impl SimpleRenderSystem {
                     push_ptr,
                 );
 
-                game_obj.model.bind(&self.lve_device.device, frame_info.command_buffer);
-                game_obj.model.draw(&self.lve_device.device, frame_info.command_buffer);
+                game_obj
+                    .model
+                    .bind(&self.lve_device.device, frame_info.command_buffer);
+                game_obj
+                    .model
+                    .draw(&self.lve_device.device, frame_info.command_buffer);
             }
         }
     }

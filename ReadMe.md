@@ -220,6 +220,10 @@ Finally got some time to work on this again!
 - Validation layers actually picked up the error in this video, but no fix in this commit :)
 - It's getting late at the time of writing, so the `FrameInfo` struct will not be included in this commit, but in the next one where we fix the `NonCoherentAtomSize` bug!
 
-# 19.2 Uniform Buffers Part 2
+# 19.2: Uniform Buffers Part 2
 - Was declaring a new `global_ubo_buffer` on every frame, moved it's declaration to the `VulkanApp` constructor and then stored an `Rc<>` of it there.
 - `FrameInfo` struct is now added.
+
+# 19.3: Uniform Buffers Bug Fix ([Link](https://www.youtube.com/watch?v=hFcmtJG3_Ao))
+- Nothing of note here
+

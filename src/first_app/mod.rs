@@ -2,22 +2,22 @@ mod keyboard_movement_controller;
 mod lve_buffer;
 mod lve_camera;
 mod lve_device;
+mod lve_frameinfo;
 mod lve_game_object;
 mod lve_model;
 mod lve_pipeline;
 mod lve_renderer;
 mod lve_swapchain;
-mod lve_frameinfo;
 mod simple_render_system;
 
 use keyboard_movement_controller::*;
 use lve_buffer::*;
 use lve_camera::*;
 use lve_device::*;
+use lve_frameinfo::FrameInfo;
 use lve_game_object::*;
 use lve_model::*;
 use lve_renderer::*;
-use lve_frameinfo::FrameInfo;
 use simple_render_system::*;
 
 use winit::{
@@ -49,7 +49,7 @@ pub struct VulkanApp {
     game_objects: Vec<LveGameObject>,
     viewer_object: LveGameObject,
     camera_controller: KeyboardMovementController,
-    global_ubo_buffer: Rc<LveBuffer>,
+    ubo_buffers: Vec<Rc<LveBuffer>>,
 }
 
 impl VulkanApp {
@@ -72,20 +72,26 @@ impl VulkanApp {
 
         let camera_controller = KeyboardMovementController::new(None, None);
 
-        let mut global_ubo_buffer = lve_buffer::LveBuffer::new(
-            Rc::clone(&lve_device),
-            size_of::<GlobalUBO>() as u64,
-            lve_swapchain::MAX_FRAMES_IN_FLIGHT as u32,
-            ash::vk::BufferUsageFlags::UNIFORM_BUFFER,
-            ash::vk::MemoryPropertyFlags::HOST_VISIBLE,
-            lve_device
-                .properties
-                .limits
-                .min_uniform_buffer_offset_alignment,
-            BufferType::Uniform,
-        );
-    
-        unsafe { global_ubo_buffer.map(ash::vk::WHOLE_SIZE, 0) };
+        let mut ubo_buffers: Vec<Rc<LveBuffer>> = Vec::new();
+
+        for i in 0..lve_swapchain::MAX_FRAMES_IN_FLIGHT {
+            let mut ubo = lve_buffer::LveBuffer::new(
+                Rc::clone(&lve_device),
+                size_of::<GlobalUBO>() as u64,
+                1,
+                ash::vk::BufferUsageFlags::UNIFORM_BUFFER,
+                ash::vk::MemoryPropertyFlags::HOST_VISIBLE,
+                lve_device
+                    .properties
+                    .limits
+                    .min_uniform_buffer_offset_alignment,
+                BufferType::Uniform,
+            );
+
+            unsafe { ubo.map(ash::vk::WHOLE_SIZE, 0) };
+
+            ubo_buffers.push(Rc::new(ubo));
+        }
 
         (
             Self {
@@ -95,7 +101,7 @@ impl VulkanApp {
                 game_objects,
                 viewer_object,
                 camera_controller,
-                global_ubo_buffer: Rc::new(global_ubo_buffer),
+                ubo_buffers,
             },
             event_loop,
         )
@@ -135,7 +141,7 @@ impl VulkanApp {
             Some(command_buffer) => {
                 let frame_index = self.lve_renderer.get_frame_index() as u64;
 
-                let frame_info = FrameInfo{
+                let frame_info = FrameInfo {
                     frame_index,
                     frame_time,
                     command_buffer,
@@ -149,9 +155,9 @@ impl VulkanApp {
                 };
 
                 unsafe {
-                    self.global_ubo_buffer.write_to_index(&[ubo], frame_index);
-                    self.global_ubo_buffer
-                        .flush_index(frame_index)
+                    self.ubo_buffers[frame_index as usize].write_to_buffer(&[ubo], ash::vk::WHOLE_SIZE, 0);
+                    self.ubo_buffers[frame_index as usize]
+                        .flush(ash::vk::WHOLE_SIZE, 0)
                         .map_err(|e| log::error!("Unable to flush memory: {}", e))
                         .unwrap();
                 }
@@ -159,10 +165,8 @@ impl VulkanApp {
                 // Render
                 self.lve_renderer
                     .begin_swapchain_render_pass(command_buffer);
-                self.simple_render_system.render_game_objects(
-                    &frame_info,
-                    &mut self.game_objects,
-                );
+                self.simple_render_system
+                    .render_game_objects(&frame_info, &mut self.game_objects);
                 self.lve_renderer.end_swapchain_render_pass(command_buffer);
             }
             None => {}

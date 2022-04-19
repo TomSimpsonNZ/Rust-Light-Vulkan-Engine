@@ -43,7 +43,7 @@ unsafe extern "system" fn vulkan_debug_callback(
         vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => log::error!("{:?} - {:?}", typ, message),
         vk::DebugUtilsMessageSeverityFlagsEXT::INFO => log::info!("{:?} - {:?}", typ, message),
         vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => log::warn!("{:?} - {:?}", typ, message),
-        _ => {}, // Any verbose logging goes here
+        _ => {} // Any verbose logging goes here
     }
 
     // Should we skip the call to the driver?

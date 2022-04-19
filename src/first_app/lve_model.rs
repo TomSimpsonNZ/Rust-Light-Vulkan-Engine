@@ -264,7 +264,7 @@ impl LveModel {
             vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
             1,
-            BufferType::Vertex
+            BufferType::Vertex,
         );
 
         // Copy vertex data from the staging buffer to the local device memory
