@@ -2,6 +2,7 @@ use super::lve_camera::*;
 use super::lve_device::*;
 use super::lve_game_object::*;
 use super::lve_pipeline::*;
+use super::lve_frameinfo::FrameInfo;
 
 use ash::{vk, Device};
 
@@ -105,16 +106,15 @@ impl SimpleRenderSystem {
 
     pub fn render_game_objects(
         &mut self,
-        command_buffer: vk::CommandBuffer,
+        frame_info: &FrameInfo,
         game_objects: &mut Vec<LveGameObject>,
-        camera: &LveCamera,
     ) {
         unsafe {
             self.lve_pipeline
-                .bind(&self.lve_device.device, command_buffer)
+                .bind(&self.lve_device.device, frame_info.command_buffer)
         };
 
-        let projection_view = camera.projection_matrix * camera.view_matrix;
+        let projection_view = frame_info.camera.projection_matrix * frame_info.camera.view_matrix;
 
         for game_obj in game_objects.iter_mut() {
             let model_matrix = game_obj.transform.mat4();
@@ -127,15 +127,15 @@ impl SimpleRenderSystem {
                 let push_ptr = push.as_bytes();
 
                 self.lve_device.device.cmd_push_constants(
-                    command_buffer,
+                    frame_info.command_buffer,
                     self.pipeline_layout,
                     vk::ShaderStageFlags::VERTEX,
                     0,
                     push_ptr,
                 );
 
-                game_obj.model.bind(&self.lve_device.device, command_buffer);
-                game_obj.model.draw(&self.lve_device.device, command_buffer);
+                game_obj.model.bind(&self.lve_device.device, frame_info.command_buffer);
+                game_obj.model.draw(&self.lve_device.device, frame_info.command_buffer);
             }
         }
     }

@@ -1,7 +1,10 @@
 mod first_app;
 mod fps_counter;
 
+use std::time::Instant;
+
 use first_app::*;
+
 use fps_counter::FPSCounter;
 
 use winit::{
@@ -9,8 +12,6 @@ use winit::{
     event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::ControlFlow,
 };
-
-use std::time::Instant;
 
 fn main() {
     // Begin the rust logging functionality

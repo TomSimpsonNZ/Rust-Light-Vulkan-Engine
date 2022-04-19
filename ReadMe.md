@@ -212,10 +212,14 @@ Finally got some time to work on this again!
 # 18: Diffuse Shading ([Link](https://www.youtube.com/watch?v=wfh2N4u-nOU))
 - We don't have the same issue as Brendan in regards to the color vector, as it is either filled with values or empty. But his fix did inspire a small optimisation.
 
-# 19: Uniform Buffers ([Link](https://www.youtube.com/watch?v=may_GMkfs5k))
+# 19.1: Uniform Buffers ([Link](https://www.youtube.com/watch?v=may_GMkfs5k))
 - Didn't make any getter functions as it is bad practice in rust, instead just made the fields public.
 - Changed the buffers to be options in the model to make creating a model with no mesh nicer. Also allows for built in checking of wether or not the model has an index buffer.
 - The model type no longer needs to have a reference to a LveDevice to function, so I have removed that.
 - Added an enum to define the type of buffer. This is only useful for validation layer messages so I can see what buffers are being deallocated when instead of jus "Dropping Buffer"
 - Validation layers actually picked up the error in this video, but no fix in this commit :)
 - It's getting late at the time of writing, so the `FrameInfo` struct will not be included in this commit, but in the next one where we fix the `NonCoherentAtomSize` bug!
+
+# 19.2 Uniform Buffers Part 2
+- Was declaring a new `global_ubo_buffer` on every frame, moved it's declaration to the `VulkanApp` constructor and then stored an `Rc<>` of it there.
+- `FrameInfo` struct is now added.

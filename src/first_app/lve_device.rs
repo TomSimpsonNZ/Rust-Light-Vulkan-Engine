@@ -39,14 +39,11 @@ unsafe extern "system" fn vulkan_debug_callback(
     let message = CStr::from_ptr((*p_callback_data).p_message);
 
     // Log the message depending on severity
-    if flag == vk::DebugUtilsMessageSeverityFlagsEXT::ERROR {
-        log::error!("{:?} - {:?}", typ, message);
-    } else if flag == vk::DebugUtilsMessageSeverityFlagsEXT::INFO {
-        log::info!("{:?} - {:?}", typ, message);
-    } else if flag == vk::DebugUtilsMessageSeverityFlagsEXT::WARNING {
-        log::warn!("{:?} - {:?}", typ, message);
-    } else { // Any verbose logging goes here
-         // log::info!("{:?} - {:?}", typ, message);
+    match flag {
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => log::error!("{:?} - {:?}", typ, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => log::info!("{:?} - {:?}", typ, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => log::warn!("{:?} - {:?}", typ, message),
+        _ => {}, // Any verbose logging goes here
     }
 
     // Should we skip the call to the driver?
