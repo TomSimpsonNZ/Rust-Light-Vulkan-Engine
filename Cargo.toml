@@ -10,7 +10,7 @@ build = "build.rs" # Builds the glsl shader modules at compilation time
 [dependencies]
 log = "0.4.14"
 env_logger = "0.8.4"
-ash = "0.33.3+1.2.191"
+ash = "0.33.*"
 ash-window = "0.7.0"
 winit = "0.25.*"
 winit_input_helper = "0.10.0"

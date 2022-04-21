@@ -26,20 +26,18 @@ use lve_renderer::*;
 use simple_render_system::*;
 
 use winit::{
-    dpi::LogicalSize,
-    event_loop::EventLoop,
+    dpi::{LogicalSize, PhysicalSize},
+    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
+    event_loop::{EventLoop, ControlFlow},
     window::{Window, WindowBuilder},
 };
 
-use winit::{
-    dpi::PhysicalSize,
-    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
-    event_loop::ControlFlow,
+use std::{
+    collections::HashMap,
+    time::Instant,
+    mem::size_of,
+    rc::Rc,
 };
-
-use std::time::Instant;
-
-use std::{mem::size_of, rc::Rc};
 
 use ash::vk;
 
@@ -52,7 +50,10 @@ const NAME: &str = "Hello Vulkan!";
 #[derive(Clone, Copy)]
 struct GlobalUBO {
     _projection_view: na::Matrix4<f32>,
-    _light_direction: na::Vector3<f32>,
+    // _light_direction: na::Vector3<f32>,
+    _ambient_light_color: na::Vector4<f32>,
+    _light_position: na::Vector4<f32>,
+    _light_color: na::Vector4<f32>, // w is light intensity
 }
 
 pub struct VulkanApp {
@@ -60,7 +61,7 @@ pub struct VulkanApp {
     lve_device: Rc<LveDevice>,
     lve_renderer: LveRenderer,
     global_pool: Rc<LveDescriptorPool>,
-    game_objects: Vec<LveGameObject>,
+    game_objects: HashMap<u64, LveGameObject>,
     viewer_object: LveGameObject,
     camera_controller: KeyboardMovementController,
 }
@@ -84,7 +85,15 @@ impl VulkanApp {
 
         let game_objects = Self::load_game_objects(&lve_device);
 
-        let viewer_object = LveGameObject::new(LveModel::new_null("camera"), None, None);
+        let viewer_object = LveGameObject::new(
+            LveModel::new_null("camera"),
+            None,
+            Some(TransformComponent {
+                translation: na::vector![0.0, 0.0, -2.5],
+                scale: na::vector![1.0, 1.0, 1.0],
+                rotation: na::vector![0.0, 0.0, 0.0],
+            }),
+        );
 
         let camera_controller = KeyboardMovementController::new(None, None);
 
@@ -128,7 +137,7 @@ impl VulkanApp {
             .add_binding(
                 0,
                 ash::vk::DescriptorType::UNIFORM_BUFFER,
-                ash::vk::ShaderStageFlags::VERTEX,
+                ash::vk::ShaderStageFlags::ALL_GRAPHICS,
                 1,
             )
             .build();
@@ -233,7 +242,7 @@ impl VulkanApp {
                             self.viewer_object.transform.translation,
                             self.viewer_object.transform.rotation,
                         )
-                        .set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 10.0)
+                        .set_perspective_projection(50_f32.to_radians(), aspect, 0.1, 100.0)
                         // .set_view_direction(na::Vector3::zeros(), na::vector![0.5, 0.0, 1.0], None)
                         // .set_view_target(
                         //     na::vector![-1.0, -2.0, 2.0],
@@ -252,18 +261,21 @@ impl VulkanApp {
                         Some(command_buffer) => {
                             let frame_index = self.lve_renderer.get_frame_index() as u64;
 
-                            let frame_info = FrameInfo {
+                            let mut frame_info = FrameInfo {
                                 frame_index,
                                 frame_time: time_since_last_frame,
                                 command_buffer,
                                 camera: &camera,
                                 global_descriptor_set: global_descriptor_sets[frame_index as usize],
+                                game_objects: &mut self.game_objects,
                             };
 
                             // Update
                             let ubo = GlobalUBO {
                                 _projection_view: camera.projection_matrix * camera.view_matrix,
-                                _light_direction: na::vector![1.0, -3.0, -1.0].normalize(),
+                                _ambient_light_color: na::vector![1.0, 1.0, 1.0, 0.015],
+                                _light_position: na::vector![-1.0, -1.0, -1.0, 0.0],
+                                _light_color: na::vector![1.0, 1.0, 1.0, 1.0],
                             };
 
                             unsafe {
@@ -282,7 +294,7 @@ impl VulkanApp {
                             self.lve_renderer
                                 .begin_swapchain_render_pass(command_buffer);
                             simple_render_system
-                                .render_game_objects(&frame_info, &mut self.game_objects);
+                                .render_game_objects(&mut frame_info);
                             self.lve_renderer.end_swapchain_render_pass(command_buffer);
                         }
                         None => {}
@@ -320,30 +332,45 @@ impl VulkanApp {
         (event_loop, winit_window)
     }
 
-    fn load_game_objects(lve_device: &Rc<LveDevice>) -> Vec<LveGameObject> {
-        let mut game_objects: Vec<LveGameObject> = Vec::new();
+    fn load_game_objects(lve_device: &Rc<LveDevice>) -> HashMap<u64, LveGameObject> {
+        let mut game_objects: HashMap<u64, LveGameObject> = HashMap::new();
+
+        let mut object_id: u64 = 0;
 
         let smooth_vase =
             LveModel::create_model_from_file(Rc::clone(lve_device), "models/smooth_vase.obj");
 
         let transform = Some(TransformComponent {
-            translation: na::vector![-0.5, 0.5, 2.5],
+            translation: na::vector![-0.5, 0.5, 0.0],
             scale: na::vector![3.0, 1.5, 3.0],
             rotation: na::vector![0.0, 0.0, 0.0],
         });
 
-        game_objects.push(LveGameObject::new(smooth_vase, None, transform));
+        game_objects.insert(object_id, LveGameObject::new(smooth_vase, None, transform));
+        object_id += 1;
 
         let flat_vase =
             LveModel::create_model_from_file(Rc::clone(lve_device), "models/flat_vase.obj");
 
         let transform = Some(TransformComponent {
-            translation: na::vector![0.5, 0.5, 2.5],
+            translation: na::vector![0.5, 0.5, 0.0],
             scale: na::vector![3.0, 3.0, 3.0],
             rotation: na::vector![0.0, 0.0, 0.0],
         });
 
-        game_objects.push(LveGameObject::new(flat_vase, None, transform));
+        game_objects.insert(object_id, LveGameObject::new(flat_vase, None, transform));
+        object_id += 1;
+
+        let floor = LveModel::create_model_from_file(Rc::clone(lve_device), "models/quad.obj");
+
+        let transform = Some(TransformComponent {
+            translation: na::vector![0.0, 0.5, 0.0],
+            scale: na::vector![3.0, 1.0, 3.0],
+            rotation: na::vector![0.0, 0.0, 0.0],
+        });
+
+        game_objects.insert(object_id, LveGameObject::new(floor, None, transform));
+        // object_id += 1;
 
         game_objects
     }

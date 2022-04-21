@@ -156,7 +156,7 @@ impl LveBuffer {
      *
      * @return VkResult of the invalidate call
      */
-    pub unsafe fn invalidate(
+    pub unsafe fn _invalidate(
         &self,
         size: vk::DeviceSize,
         offset: vk::DeviceSize,
@@ -201,7 +201,7 @@ impl LveBuffer {
      * @param index Used in offset calculation
      *
      */
-    pub unsafe fn write_to_index<T: Copy>(&self, data: &[T], index: u64) {
+    pub unsafe fn _write_to_index<T: Copy>(&self, data: &[T], index: u64) {
         self.write_to_buffer(data, self.instance_size, index * self.alignment_size)
     }
 
@@ -211,7 +211,7 @@ impl LveBuffer {
      * @param index Used in offset calculation
      *
      */
-    pub unsafe fn flush_index(&self, index: u64) -> Result<(), vk::Result> {
+    pub unsafe fn _flush_index(&self, index: u64) -> Result<(), vk::Result> {
         self.flush(self.alignment_size, index * self.alignment_size)
     }
 
@@ -222,7 +222,7 @@ impl LveBuffer {
      *
      * @return VkDescriptorBufferInfo for instance at index
      */
-    pub fn descriptor_info_for_index(&self, index: u64) -> Rc<vk::DescriptorBufferInfo> {
+    pub fn _descriptor_info_for_index(&self, index: u64) -> Rc<vk::DescriptorBufferInfo> {
         self.descriptor_info(self.alignment_size, index * self.alignment_size)
     }
 
@@ -235,8 +235,8 @@ impl LveBuffer {
      *
      * @return VkResult of the invalidate call
      */
-    pub unsafe fn invalidate_index(&self, index: u64) -> Result<(), vk::Result> {
-        self.invalidate(self.alignment_size, index * self.alignment_size)
+    pub unsafe fn _invalidate_index(&self, index: u64) -> Result<(), vk::Result> {
+        self._invalidate(self.alignment_size, index * self.alignment_size)
     }
 
     fn get_alignment(

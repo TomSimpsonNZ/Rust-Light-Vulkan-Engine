@@ -1,6 +1,5 @@
 use super::lve_device::*;
 use super::lve_frameinfo::FrameInfo;
-use super::lve_game_object::*;
 use super::lve_pipeline::*;
 
 use ash::{vk, Device};
@@ -17,8 +16,8 @@ type Mat4 = Align16<na::Matrix4<f32>>;
 
 #[derive(Debug)]
 pub struct SimplePushConstantData {
-    model_matrix: Mat4,
-    normal_matrix: Mat4,
+    _model_matrix: Mat4,
+    _normal_matrix: Mat4,
 }
 
 impl SimplePushConstantData {
@@ -113,8 +112,7 @@ impl SimpleRenderSystem {
 
     pub fn render_game_objects(
         &mut self,
-        frame_info: &FrameInfo,
-        game_objects: &mut Vec<LveGameObject>,
+        frame_info: &mut FrameInfo,
     ) {
         unsafe {
             self.lve_pipeline
@@ -130,10 +128,10 @@ impl SimpleRenderSystem {
             );
         };
 
-        for game_obj in game_objects.iter_mut() {
+        for (_, game_obj) in frame_info.game_objects.iter_mut() {
             let push = SimplePushConstantData {
-                model_matrix: Align16(game_obj.transform.mat4()),
-                normal_matrix: Align16(game_obj.transform.normal_matrix()),
+                _model_matrix: Align16(game_obj.transform.mat4()),
+                _normal_matrix: Align16(game_obj.transform.normal_matrix()),
             };
 
             unsafe {

@@ -230,3 +230,10 @@ Finally got some time to work on this again!
 # 20: Descriptor Sets ([Link](https://www.youtube.com/watch?v=d5p44idnZLQ))
 - Decided to refactor the run function to behave in a similar fashion to the way Brendan's does. It should have been like this from the beginning probably but I didn't think to write it like that
 - The ``LveBuffer::descriptor_info()` function now returns an `Rc<vk::DescriptorBufferInfo>` instead of just the `vk::DescriptorBufferInfo`. This is because the vk::DescriptorBufferInfo struct is temporary and is dropped from scope at then end of the function. This lead to a dangling pointer that caused vulkan to crash on the creation of the descriptor sets as the buffer info was garbled.
+
+# 21 & 22: [Intro to Point Lights](https://www.youtube.com/watch?v=Z1lLwAEMt4M) and [Vertex vs Fragment lighting](https://www.youtube.com/watch?v=YnMyKHfrgU4)
+- Very small tutorials so forgot to commit for each one :)
+- Decided to remove more of the warnings as there were beginning to be a few of them
+
+# 23: Project Restructure and CMake ([Link](https://www.youtube.com/watch?v=ZuHK_5cJ6B8))
+- This video doesn't apply to rust, everything that he talked about was already implemented so no changes were needed.

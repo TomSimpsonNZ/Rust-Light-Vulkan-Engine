@@ -146,7 +146,7 @@ impl LveDescriptorPool {
         }
     }
 
-    pub unsafe fn free_descriptors(&self, descriptors: &Vec<vk::DescriptorSet>) {
+    pub unsafe fn _free_descriptors(&self, descriptors: &Vec<vk::DescriptorSet>) {
         self.lve_device
             .device
             .free_descriptor_sets(self.descriptor_pool, descriptors.as_slice())
@@ -154,7 +154,7 @@ impl LveDescriptorPool {
             .unwrap()
     }
 
-    pub unsafe fn reset_pool(&self) {
+    pub unsafe fn _reset_pool(&self) {
         self.lve_device
             .device
             .reset_descriptor_pool(self.descriptor_pool, vk::DescriptorPoolResetFlags::empty())
@@ -204,7 +204,7 @@ impl LveDescriptorPoolBuilder {
         self
     }
 
-    pub fn set_pool_flags<'a>(
+    pub fn _set_pool_flags<'a>(
         &'a mut self,
         flags: vk::DescriptorPoolCreateFlags,
     ) -> &'a mut LveDescriptorPoolBuilder {
@@ -273,7 +273,7 @@ impl LveDescriptorWriter {
         self
     }
 
-    pub fn write_image<'a>(
+    pub fn _write_image<'a>(
         &'a mut self,
         binding: u32,
         image_info: vk::DescriptorImageInfo,
