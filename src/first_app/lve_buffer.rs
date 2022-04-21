@@ -186,12 +186,12 @@ impl LveBuffer {
         &self,
         size: vk::DeviceSize,
         offset: vk::DeviceSize,
-    ) -> vk::DescriptorBufferInfo {
-        vk::DescriptorBufferInfo {
+    ) -> Rc<vk::DescriptorBufferInfo> {
+        Rc::new(vk::DescriptorBufferInfo {
             buffer: self.buffer,
             offset,
             range: size,
-        }
+        })
     }
 
     /**
@@ -222,7 +222,7 @@ impl LveBuffer {
      *
      * @return VkDescriptorBufferInfo for instance at index
      */
-    pub fn descriptor_info_for_index(&self, index: u64) -> vk::DescriptorBufferInfo {
+    pub fn descriptor_info_for_index(&self, index: u64) -> Rc<vk::DescriptorBufferInfo> {
         self.descriptor_info(self.alignment_size, index * self.alignment_size)
     }
 

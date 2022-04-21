@@ -227,3 +227,6 @@ Finally got some time to work on this again!
 # 19.3: Uniform Buffers Bug Fix ([Link](https://www.youtube.com/watch?v=hFcmtJG3_Ao))
 - Nothing of note here
 
+# 20: Descriptor Sets ([Link](https://www.youtube.com/watch?v=d5p44idnZLQ))
+- Decided to refactor the run function to behave in a similar fashion to the way Brendan's does. It should have been like this from the beginning probably but I didn't think to write it like that
+- The ``LveBuffer::descriptor_info()` function now returns an `Rc<vk::DescriptorBufferInfo>` instead of just the `vk::DescriptorBufferInfo`. This is because the vk::DescriptorBufferInfo struct is temporary and is dropped from scope at then end of the function. This lead to a dangling pointer that caused vulkan to crash on the creation of the descriptor sets as the buffer info was garbled.

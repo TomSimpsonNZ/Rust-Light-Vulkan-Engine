@@ -1,4 +1,3 @@
-use super::lve_camera::*;
 use super::lve_device::*;
 use super::lve_frameinfo::FrameInfo;
 use super::lve_game_object::*;
@@ -14,13 +13,12 @@ extern crate nalgebra as na;
 #[derive(Debug, Clone, Copy)]
 pub struct Align16<T>(pub T);
 
-type Transform = Align16<na::Matrix4<f32>>;
-type NormalMatrix = Align16<na::Matrix4<f32>>;
+type Mat4 = Align16<na::Matrix4<f32>>;
 
 #[derive(Debug)]
 pub struct SimplePushConstantData {
-    transform: Transform,
-    normal_matrix: NormalMatrix,
+    model_matrix: Mat4,
+    normal_matrix: Mat4,
 }
 
 impl SimplePushConstantData {
@@ -49,8 +47,12 @@ pub struct SimpleRenderSystem {
 }
 
 impl SimpleRenderSystem {
-    pub fn new(lve_device: Rc<LveDevice>, render_pass: &vk::RenderPass) -> Self {
-        let pipeline_layout = Self::create_pipeline_layout(&lve_device.device);
+    pub fn new(
+        lve_device: Rc<LveDevice>,
+        render_pass: &vk::RenderPass,
+        global_set_layout: vk::DescriptorSetLayout
+    ) -> Self {
+        let pipeline_layout = Self::create_pipeline_layout(&lve_device.device, global_set_layout);
 
         let lve_pipeline =
             Self::create_pipeline(Rc::clone(&lve_device), render_pass, &pipeline_layout);
@@ -84,15 +86,20 @@ impl SimpleRenderSystem {
         )
     }
 
-    fn create_pipeline_layout(device: &Device) -> vk::PipelineLayout {
+    fn create_pipeline_layout(
+        device: &Device,
+        global_set_layout: vk::DescriptorSetLayout
+    ) -> vk::PipelineLayout {
         let push_constant_range = vk::PushConstantRange::builder()
             .stage_flags(vk::ShaderStageFlags::VERTEX)
             .offset(0)
             .size(std::mem::size_of::<SimplePushConstantData>() as u32)
             .build();
 
+        let descriptor_set_layouts = vec![global_set_layout];
+
         let pipeline_layout_info = vk::PipelineLayoutCreateInfo::builder()
-            // .set_layouts(&[vk::DescriptorSetLayout::null()])
+            .set_layouts(descriptor_set_layouts.as_slice())
             .push_constant_ranges(&[push_constant_range])
             .build();
 
@@ -111,15 +118,21 @@ impl SimpleRenderSystem {
     ) {
         unsafe {
             self.lve_pipeline
-                .bind(&self.lve_device.device, frame_info.command_buffer)
+                .bind(&self.lve_device.device, frame_info.command_buffer);
+
+            self.lve_device.device.cmd_bind_descriptor_sets(
+                frame_info.command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline_layout,
+                0,
+                &[frame_info.global_descriptor_set],
+                &[],
+            );
         };
 
-        let projection_view = frame_info.camera.projection_matrix * frame_info.camera.view_matrix;
-
         for game_obj in game_objects.iter_mut() {
-            let model_matrix = game_obj.transform.mat4();
             let push = SimplePushConstantData {
-                transform: Align16(projection_view * model_matrix),
+                model_matrix: Align16(game_obj.transform.mat4()),
                 normal_matrix: Align16(game_obj.transform.normal_matrix()),
             };
 
